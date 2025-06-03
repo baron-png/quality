@@ -2,13 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
+@import '../../node_modules/@syncfusion/ej2-base/styles/material.css';
+@import '../../node_modules/@syncfusion/ej2-buttons/styles/material.css';
+@import '../../node_modules/@syncfusion/ej2-inputs/styles/material.css';
+@import '../../node_modules/@syncfusion/ej2-popups/styles/material.css';
+@import '../../node_modules/@syncfusion/ej2-lists/styles/material.css';
+@import '../../node_modules/@syncfusion/ej2-navigations/styles/material.css';
+@import '../../node_modules/@syncfusion/ej2-splitbuttons/styles/material.css';
+@import '../../node_modules/@syncfusion/ej2-dropdowns/styles/material.css';
+@import "../../node_modules/@syncfusion/ej2-react-documenteditor/styles/material.css";
+
 @layer base {
   body {
     @apply bg-gray-2 text-dark-5 dark:bg-[#020D1A] dark:text-dark-6;
+     color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
   }
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
+     --background: #ffffff;
+  --foreground: #171717;
     --card: 0 0% 100%;
     --card-foreground: 0 0% 3.9%;
     --popover: 0 0% 100%;
@@ -127,6 +140,49 @@
 .apexcharts-xcrosshairs {
   @apply !fill-stroke dark:!fill-dark-3;
 }
+
+
+h1 {
+  font-size: 2rem;
+  font-weight: 700;
+}
+h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+h3 {
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+h4 {
+  font-size: 1rem;
+  font-weight: 400;
+}
+h5 {
+  font-size: 0.875rem;
+  font-weight: 300;
+}
+h6 {
+  font-size: 0.75rem;
+  font-weight: 200;
+}
+ul {
+  list-style-type: disc;
+  margin-left: 1.5rem;
+}
+
+ul li {
+  margin-bottom: 0.5rem;
+}
+ol {
+  list-style-type: decimal;
+  margin-left: 1.5rem;
+}
+
+ol li {
+  margin-bottom: 0.5rem;
+}
+
 
 .apexcharts-gridline {
   @apply !stroke-stroke dark:!stroke-dark-3;

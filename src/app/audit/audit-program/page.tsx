@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
+import { useSearchParams } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -16,9 +17,12 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  fetchAdminAuditPrograms,
+  fetchAuditPrograms,
+  updateAuditProgram,
+  submitForApprovalAuditProgram,
   approveAuditProgram,
   rejectAuditProgram,
+  archiveAuditProgram,
 } from "@/api/auditService";
 
 interface Audit {
@@ -49,40 +53,84 @@ interface ActionStatus {
     loading?: boolean;
     error?: string | null;
     success?: string;
-    action?: "approve" | "reject";
+    action?: "approve" | "reject" | "submit" | "archive";
   };
 }
 
-export default function AdminAuditProgramsPage() {
+export default function AuditProgramsPage() {
   const router = useRouter();
   const { token, user } = useAuth();
-  const [tab, setTab] = useState<string>("pending");
   const [auditPrograms, setAuditPrograms] = useState<AuditProgram[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [actionStatus, setActionStatus] = useState<ActionStatus>({});
-useEffect(() => {
-  if (user === undefined) return; // Still loading user, do nothing
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get("tab") || "draft";
+  const [tab, setTab] = useState<string>(initialTab);
 
-  if (user?.primaryRole?.toUpperCase() === "ADMIN") {
+  useEffect(() => {
+    if (!user || !token) return;
     const fetchPrograms = async () => {
+      setLoading(true);
       try {
-        const data = await fetchAdminAuditPrograms(token);
-        setAuditPrograms(data);
-      } catch (error: any) {
-        console.error("Error fetching audit programs:", error.message);
-        setAuditPrograms([]);
+        const programs = await fetchAuditPrograms(token, user.primaryRole);
+        setAuditPrograms(programs);
       } finally {
         setLoading(false);
       }
     };
     fetchPrograms();
-  } else {
-    setLoading(false); // User loaded but not admin
-  }
-}, [token, user]);
+  }, [token, user]);
 
   const handleCreateProgram = () => {
     router.push("/audit/audit-program/create");
+  };
+
+  const handleEditProgram = (id: string) => {
+    router.push(`/audit/audit-program/edit/${id}`);
+  };
+
+  const handleSubmitForApproval = async (id: string) => {
+    setActionStatus((prev) => ({
+      ...prev,
+      [id]: { loading: true, error: null, action: "submit" },
+    }));
+    try {
+      await submitForApprovalAuditProgram(id, token);
+      const refreshed = await fetchAuditPrograms(token, user.primaryRole);
+      setAuditPrograms(refreshed);
+      setActionStatus((prev) => ({
+        ...prev,
+        [id]: { loading: false, success: "Program Submitted for Approval" },
+      }));
+      setTimeout(() => setActionStatus((prev) => ({ ...prev, [id]: {} })), 3000);
+    } catch (error: any) {
+      setActionStatus((prev) => ({
+        ...prev,
+        [id]: { loading: false, error: error.message || "Failed to submit. Try again." },
+      }));
+    }
+  };
+
+  const handleArchiveProgram = async (id: string) => {
+    setActionStatus((prev) => ({
+      ...prev,
+      [id]: { loading: true, error: null, action: "archive" },
+    }));
+    try {
+      await archiveAuditProgram(id, token);
+      const refreshed = await fetchAuditPrograms(token, user.primaryRole);
+      setAuditPrograms(refreshed);
+      setActionStatus((prev) => ({
+        ...prev,
+        [id]: { loading: false, success: "Program Archived" },
+      }));
+      setTimeout(() => setActionStatus((prev) => ({ ...prev, [id]: {} })), 3000);
+    } catch (error: any) {
+      setActionStatus((prev) => ({
+        ...prev,
+        [id]: { loading: false, error: error.message || "Failed to archive. Try again." },
+      }));
+    }
   };
 
   const handleApproveProgram = async (id: string) => {
@@ -92,7 +140,7 @@ useEffect(() => {
     }));
     try {
       await approveAuditProgram(id, token);
-      const refreshed = await fetchAdminAuditPrograms(token);
+      const refreshed = await fetchAuditPrograms(token, user.primaryRole);
       setAuditPrograms(refreshed);
       setActionStatus((prev) => ({
         ...prev,
@@ -114,7 +162,7 @@ useEffect(() => {
     }));
     try {
       await rejectAuditProgram(id, token);
-      const refreshed = await fetchAdminAuditPrograms(token);
+      const refreshed = await fetchAuditPrograms(token, user.primaryRole);
       setAuditPrograms(refreshed);
       setActionStatus((prev) => ({
         ...prev,
@@ -145,24 +193,24 @@ useEffect(() => {
   if (loading) {
     return (
       <div className="p-6 max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">Admin Audit Programs</h1>
+        <h1 className="text-3xl font-bold mb-6">Audit Programs</h1>
         <p>Loading...</p>
       </div>
     );
   }
 
-  if (user?.primaryRole?.toUpperCase() !== "ADMIN") {
+  if (!user || !["ADMIN", "MR"].includes(user.primaryRole?.toUpperCase())) {
     return (
       <div className="p-6 max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">Admin Audit Programs</h1>
-        <p className="text-red-500">Access denied. Admin privileges required.</p>
+        <h1 className="text-3xl font-bold mb-6">Audit Programs</h1>
+        <p className="text-red-500">Access denied. Admin or MR privileges required.</p>
       </div>
     );
   }
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Admin Audit Programs</h1>
+      <h1 className="text-3xl font-bold mb-6">Audit Programs</h1>
 
       <Tabs value={tab} onValueChange={setTab} className="mb-6">
         <TabsList className="grid w-full grid-cols-5">
@@ -300,7 +348,74 @@ useEffect(() => {
                   <p className="text-center text-muted-foreground mt-4">No audits available</p>
                 )}
                 <div className="mt-4 flex justify-end space-x-2">
-                  {program.status === "Pending Approval" && (
+                  {program.status === "Draft" && (
+                    <>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="bg-blue-600 hover:bg-blue-700"
+                        onClick={() => handleEditProgram(program.id)}
+                        disabled={actionStatus[program.id]?.loading}
+                        title="Edit Audit Program"
+                      >
+                        Edit
+                      </Button>
+                      {user.primaryRole?.toUpperCase() === "ADMIN" ? (
+                        <>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className="bg-green-600 hover:bg-green-700"
+                            onClick={() => handleApproveProgram(program.id)}
+                            disabled={actionStatus[program.id]?.loading}
+                            title="Approve Audit Program"
+                          >
+                            {actionStatus[program.id]?.loading && actionStatus[program.id]?.action === "approve"
+                              ? "Approving..."
+                              : "Approve"}
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="bg-red-600 hover:bg-red-700"
+                            onClick={() => handleRejectProgram(program.id)}
+                            disabled={actionStatus[program.id]?.loading}
+                            title="Reject Audit Program"
+                          >
+                            {actionStatus[program.id]?.loading && actionStatus[program.id]?.action === "reject"
+                              ? "Rejecting..."
+                              : "Reject"}
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="bg-yellow-600 hover:bg-yellow-700"
+                          onClick={() => handleSubmitForApproval(program.id)}
+                          disabled={actionStatus[program.id]?.loading}
+                          title="Submit Audit Program for Approval"
+                        >
+                          {actionStatus[program.id]?.loading && actionStatus[program.id]?.action === "submit"
+                            ? "Submitting..."
+                            : "Submit for Approval"}
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-gray-300"
+                        onClick={() => handleArchiveProgram(program.id)}
+                        disabled={actionStatus[program.id]?.loading}
+                        title="Archive Audit Program"
+                      >
+                        {actionStatus[program.id]?.loading && actionStatus[program.id]?.action === "archive"
+                          ? "Archiving..."
+                          : "Archive"}
+                      </Button>
+                    </>
+                  )}
+                  {program.status === "Pending Approval" && user.primaryRole?.toUpperCase() === "ADMIN" && (
                     <>
                       <Button
                         variant="default"
@@ -308,6 +423,7 @@ useEffect(() => {
                         className="bg-green-600 hover:bg-green-700"
                         onClick={() => handleApproveProgram(program.id)}
                         disabled={actionStatus[program.id]?.loading}
+                        title="Approve Audit Program"
                       >
                         {actionStatus[program.id]?.loading && actionStatus[program.id]?.action === "approve"
                           ? "Approving..."
@@ -316,8 +432,10 @@ useEffect(() => {
                       <Button
                         variant="destructive"
                         size="sm"
+                        className="bg-red-600 hover:bg-red-700"
                         onClick={() => handleRejectProgram(program.id)}
                         disabled={actionStatus[program.id]?.loading}
+                        title="Reject Audit Program"
                       >
                         {actionStatus[program.id]?.loading && actionStatus[program.id]?.action === "reject"
                           ? "Rejecting..."
@@ -343,7 +461,7 @@ useEffect(() => {
       </div>
 
       <footer className="mt-8 text-sm text-muted-foreground">
-        <p>Administered by: Admin</p>
+        <p>Administered by: {user.primaryRole}</p>
       </footer>
     </div>
   );

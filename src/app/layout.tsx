@@ -1,5 +1,6 @@
 import "@/css/satoshi.css";
 import "@/css/style.css";
+import '@syncfusion/ej2-react-documenteditor/styles/material.css';
 
 import { Sidebar } from "@/components/Layouts/sidebar";
 

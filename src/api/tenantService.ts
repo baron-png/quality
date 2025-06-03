@@ -29,3 +29,20 @@ export async function getInstitutions(token: string) {
   }
   return res.json();
 }
+
+export async function getInstitutionById(tenantId: string, token: string) {
+  const res = await fetch(
+    `http://localhost:5001/tenant/api/tenants/${tenantId}/details`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Failed to fetch institution details");
+  }
+  return res.json();
+}

@@ -1,23 +1,12 @@
+// controllers/audit.controller.js
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 const createAuditProgram = async (req, res) => {
-  const { name, auditProgramObjective, startDate, endDate, audits, tenantId, tenantName } = req.body;
-  const { userId } = req.user;
+  const { name, auditProgramObjective, startDate, endDate, tenantName } = req.body;
+  const { userId, tenantId } = req.user;
 
   try {
-    if (!Array.isArray(audits)) {
-      return res.status(400).json({ error: "Audits must be an array" });
-    }
-
-    const sanitizedAudits = audits.map((audit) => ({
-      id: audit.id,
-      scope: audit.scope,
-      specificAuditObjective: audit.specificAuditObjectives,
-      methods: audit.methods,
-      criteria: audit.criteria,
-    }));
-
     const auditProgram = await prisma.auditProgram.create({
       data: {
         id: `AP-${Date.now()}`,
@@ -29,11 +18,8 @@ const createAuditProgram = async (req, res) => {
         tenantId,
         tenantName,
         createdBy: userId,
-        audits: { create: sanitizedAudits },
       },
-      include: { audits: true },
     });
-
     res.status(201).json(auditProgram);
   } catch (error) {
     console.error("Error creating audit program:", error.message);
@@ -42,11 +28,14 @@ const createAuditProgram = async (req, res) => {
 };
 
 const getAllAuditPrograms = async (req, res) => {
-  const { tenantId } = req.user;
+  const { tenantId, roleName, userId } = req.user;
 
   try {
     const programs = await prisma.auditProgram.findMany({
-      where: { tenantId },
+      where: {
+        tenantId,
+        ...(roleName === "MR" ? { createdBy: userId } : {}), // MR only sees their own programs
+      },
       include: { audits: true },
     });
     res.json(programs);
@@ -78,13 +67,41 @@ const getAuditProgramById = async (req, res) => {
   }
 };
 
-const submitAuditProgram = async (req, res) => {
+const updateAuditProgram = async (req, res) => {
   const { id } = req.params;
-  const { tenantId } = req.user;
+  const { name, auditProgramObjective, startDate, endDate } = req.body;
+  const { tenantId, userId, roleName } = req.user;
 
   try {
     const program = await prisma.auditProgram.findUnique({ where: { id } });
-    if (!program || program.tenantId !== tenantId) {
+    if (!program || program.tenantId !== tenantId || (roleName === "MR" && program.createdBy !== userId)) {
+      return res.status(403).json({ error: "Unauthorized to update this program" });
+    }
+
+    const auditProgram = await prisma.auditProgram.update({
+      where: { id },
+      data: {
+        name,
+        auditProgramObjective: auditProgramObjective || null,
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+      },
+      include: { audits: true },
+    });
+    res.json(auditProgram);
+  } catch (error) {
+    console.error("Error updating audit program:", error);
+    res.status(500).json({ error: "Failed to update audit program" });
+  }
+};
+
+const submitAuditProgram = async (req, res) => {
+  const { id } = req.params;
+  const { tenantId, userId, roleName } = req.user;
+
+  try {
+    const program = await prisma.auditProgram.findUnique({ where: { id } });
+    if (!program || program.tenantId !== tenantId || (roleName === "MR" && program.createdBy !== userId)) {
       return res.status(403).json({ error: "Unauthorized to submit this program" });
     }
 
@@ -144,11 +161,35 @@ const rejectAuditProgram = async (req, res) => {
   }
 };
 
+const archiveAuditProgram = async (req, res) => {
+  const { id } = req.params;
+  const { tenantId, userId, roleName } = req.user;
+
+  try {
+    const program = await prisma.auditProgram.findUnique({ where: { id } });
+    if (!program || program.tenantId !== tenantId || (roleName === "MR" && program.createdBy !== userId)) {
+      return res.status(403).json({ error: "Unauthorized to archive this program" });
+    }
+
+    const auditProgram = await prisma.auditProgram.update({
+      where: { id },
+      data: { status: "Archived" },
+      include: { audits: true },
+    });
+    res.json(auditProgram);
+  } catch (error) {
+    console.error("Error archiving audit program:", error);
+    res.status(500).json({ error: "Failed to archive audit program" });
+  }
+};
+
 module.exports = {
   createAuditProgram,
   getAllAuditPrograms,
   getAuditProgramById,
+  updateAuditProgram,
   submitAuditProgram,
   approveAuditProgram,
   rejectAuditProgram,
+  archiveAuditProgram,
 };

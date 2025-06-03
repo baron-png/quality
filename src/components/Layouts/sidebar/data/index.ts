@@ -180,6 +180,13 @@ export const NAV_DATA = [
         ],
       },
       {
+        title: "Manage Institution",
+        icon: Icons.Table, // Or choose a more appropriate icon if you have one
+        url: "/manage-institution",
+        roles: ["ADMIN"],
+        items: [],
+      },
+      {
         title: "Pages",
         icon: Icons.Alphabet,
         roles: ["SUPER_ADMIN", "ADMIN", "USER"],
