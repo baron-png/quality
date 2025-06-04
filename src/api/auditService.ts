@@ -1,11 +1,25 @@
 // src/api/auditService.ts
 export async function fetchAuditPrograms(token: string, role: string) {
-  const response = await fetch(`http://localhost:5004/api/audit-programs`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!response.ok) throw new Error("Failed to fetch audit programs");
-  const data = await response.json();
-  return Array.isArray(data) ? data : [];
+  try {
+    const response = await fetch(`http://localhost:5004/api/audit-programs`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) {
+      let errorMsg = "Failed to fetch audit programs";
+      try {
+        const errorData = await response.json();
+        errorMsg = errorData.error || errorMsg;
+      } catch {
+        // ignore JSON parse error
+      }
+      throw new Error(errorMsg);
+    }
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
+  } catch (error: any) {
+    // Optionally log error here
+    return []; // Return empty array to avoid breaking the UI
+  }
 }
 export async function getAuditProgramById(id: string, token: string) {
   const response = await fetch(`http://localhost:5004/api/audit-programs/${id}`, {

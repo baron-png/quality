@@ -1,0 +1,154 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+enum InstitutionType {
+  UNIVERSITY
+  COLLEGE
+  SCHOOL
+  INSTITUTE
+  OTHER
+}
+
+enum InstitutionStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+}
+
+model Tenant {
+  id                  String         @id @default(uuid())
+  name                String         @unique
+  domain              String         @unique
+  logoUrl             String?
+  address             String?
+  city                String?
+  state               String?
+  country             String?
+  phone               String?
+  email               String         @unique
+  type                InstitutionType
+  accreditationNumber String?        @unique
+  establishedYear     Int?
+  timezone            String?
+  currency            String?
+  status              InstitutionStatus @default(PENDING)
+  createdBy           String          // SUPER_ADMIN ID
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  users               User[]
+  departments         Department[]
+  roles               Role[]
+  documents           Document[]
+  changeRequests      ChangeRequest[] @relation("TenantChangeRequests")
+  notifications       Notification[]
+}
+
+model User {
+  id                String         @id @default(uuid())
+  email             String         @unique
+  password          String
+  firstName         String?
+  lastName          String?
+  verified          Boolean        @default(false)
+  mustChangePassword Boolean        @default(true)
+  tenantId          String
+  tenant            Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  departmentId      String?
+  department        Department?    @relation(fields: [departmentId], references: [id])
+  createdBy         String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  headedDepartment  Department?    @relation("DepartmentHead")
+  userRoles         UserRole[]     // Links to UserRole join table
+  notifications     Notification[] // Received notifications
+  changeRequests    ChangeRequest[] @relation("Proposer")
+}
+
+model Role {
+  id          String      @id @default(uuid())
+  name        String
+  description String?
+  tenantId    String
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userRoles   UserRole[]  // Links to UserRole join table
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  @@unique([name, tenantId])
+}
+
+model Department {
+  id          String      @id @default(uuid())
+  name        String
+  code        String?      @unique
+  tenantId    String
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  headId      String?      @unique
+  head        User?        @relation("DepartmentHead", fields: [headId], references: [id])
+  createdBy   String       // ADMIN ID who created it
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  users       User[]
+  changeRequests ChangeRequest[] @relation("DepartmentChangeRequests")
+}
+
+model Document {
+  id            String         @id @default(uuid())
+  tenantId      String
+  title         String
+  filePath      String
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
+  changeRequests ChangeRequest[]
+  notifications Notification[] // Add relation for Notification
+}
+
+model ChangeRequest {
+  id            String         @id @default(uuid())
+  documentId    String
+  proposerId    String
+  departmentId  String
+  tenantId      String
+  section       String
+  justification String
+  status        String         // "Pending", "Approved", "Accepted", "Declined"
+  document      Document       @relation(fields: [documentId], references: [id])
+  proposer      User           @relation("Proposer", fields: [proposerId], references: [id])
+  tenant        Tenant         @relation("TenantChangeRequests", fields: [tenantId], references: [id])
+  department    Department     @relation("DepartmentChangeRequests", fields: [departmentId], references: [id])
+  notifications Notification[] // Add relation for Notification
+}
+
+model Notification {
+  id             String         @id @default(uuid())
+  title          String         // e.g., "New Policy Document Published", "Change Request Submitted"
+  message        String         // Detailed message
+  type           String         // e.g., "System", "Change Request", "Document Update"
+  priority       String?        // e.g., "High", "Medium", "Low"
+  userId         String?        // Null for system-wide, specific user ID for targeted
+  tenantId       String         // Scope to tenant
+  documentId     String?        // Optional link to document
+  changeRequestId String?       // Optional link to change request
+  link           String?        // URL, e.g., "/auditor/auditor-document" or "/documents/[docId]/change-requests"
+  isRead         Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+  expiresAt      DateTime?      // Optional expiration date
+  user           User?          @relation(fields: [userId], references: [id])
+  tenant         Tenant         @relation(fields: [tenantId], references: [id])
+  document       Document?      @relation(fields: [documentId], references: [id])
+  changeRequest  ChangeRequest? @relation(fields: [changeRequestId], references: [id])
+}
+
+model UserRole {
+  userId    String
+  roleId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  assignedAt DateTime  @default(now())
+  @@id([userId, roleId])  // Composite key allows multiple roles per user
+}

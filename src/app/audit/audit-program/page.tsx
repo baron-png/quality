@@ -67,13 +67,17 @@ export default function AuditProgramsPage() {
   const initialTab = searchParams.get("tab") || "draft";
   const [tab, setTab] = useState<string>(initialTab);
 
-  useEffect(() => {
+   useEffect(() => {
     if (!user || !token) return;
     const fetchPrograms = async () => {
       setLoading(true);
       try {
         const programs = await fetchAuditPrograms(token, user.primaryRole);
         setAuditPrograms(programs);
+      } catch (error: any) {
+        setAuditPrograms([]); // Optionally clear the list
+        // Optionally set an error state to show a message to the user
+        console.error("Failed to fetch audit programs:", error.message);
       } finally {
         setLoading(false);
       }

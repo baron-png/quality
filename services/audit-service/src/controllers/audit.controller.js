@@ -110,6 +110,49 @@ const submitAuditProgram = async (req, res) => {
       data: { status: "Pending Approval" },
       include: { audits: true },
     });
+
+    // --- Notification Logic ---
+    // 1. Find all ADMIN and PRINCIPAL users for this tenant
+      const admins = await prisma.user.findMany({
+      where: {
+        tenantId,
+        userRoles: {
+          some: {
+            role: {
+              name: { in: ["ADMIN"] }
+            }
+          }
+        }
+      }
+    });
+
+    // 2. Send notification to each admin/principal
+    for (const admin of admins) {
+      try {
+        await axios.post(
+          'http://localhost:5006/api/notifications',
+          {
+            title: "Audit Program Submitted",
+            message: `Audit program "${auditProgram.name}" has been submitted for approval.`,
+            type: "AUDIT_SUBMITTED",
+            priority: "HIGH",
+            tenantId,
+            targetUserId: admin.id,
+            link: `/audit/audit-program/${auditProgram.id}`,
+          },
+          {
+            headers: {
+              // If your notification service requires a JWT, add it here:
+              // Authorization: `Bearer ${serviceToken}`
+            }
+          }
+        );
+      } catch (notifyErr) {
+        console.error(`Failed to notify user ${admin.id}:`, notifyErr.message);
+      }
+    }
+    // --- End Notification Logic ---
+
     res.json(auditProgram);
   } catch (error) {
     console.error("Error submitting audit program:", error);

@@ -1,85 +1,196 @@
-# NextAdmin - Next.js Admin Dashboard Template and Components
 
-**NextAdmin** is a Free, open-source Next.js admin dashboard toolkit featuring 200+ UI components and templates that come with pre-built elements, components, pages, high-quality design, integrations, and much more to help you create powerful admin dashboards with ease.
+"use client";
+import { EmailIcon, PasswordIcon } from "@/assets/icons";
+import Link from "next/link";
+import React, { useState, useEffect } from "react";
+import InputGroup from "../FormElements/InputGroup";
+import { Checkbox } from "../FormElements/checkbox";
+import { useAuth } from "@/context/auth-context";
 
+export default function SigninWithPassword() {
+  const [data, setData] = useState({
+    email: process.env.NEXT_PUBLIC_DEMO_USER_MAIL || "",
+    password: process.env.NEXT_PUBLIC_DEMO_USER_PASS || "",
+    remember: false,
+  });
+  const [otp, setOtp] = useState("");
+  const [showOtpForm, setShowOtpForm] = useState(false);
+  const [timer, setTimer] = useState(5 * 60); // 5 minutes in seconds
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { login } = useAuth();
 
-[![nextjs admin template](https://cdn.pimjo.com/nextadmin-2.png)](https://nextadmin.co/)
+  // Timer for OTP expiration
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (showOtpForm && timer > 0) {
+      interval = setInterval(() => setTimer((prev) => prev - 1), 1000);
+    }
+    return () => clearInterval(interval);
+  }, [showOtpForm, timer]);
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setData({ ...data, [e.target.name]: e.target.value });
+  };
 
-**NextAdmin** provides you with a diverse set of dashboard UI components, elements, examples and pages necessary for creating top-notch admin panels or dashboards with **powerful** features and integrations. Whether you are working on a complex web application or a basic website, **NextAdmin** has got you covered.
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      await login(data.email, data.password);
+    } catch (err: any) {
+      if (err.message.includes("Email not verified")) {
+        setShowOtpForm(true);
+        setTimer(5 * 60); // Reset timer
+      } else {
+        setError(err.message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
-### [✨ Visit Website](https://nextadmin.co/)
-### [🚀 Live Demo](https://demo.nextadmin.co/)
-### [📖 Docs](https://docs.nextadmin.co/)
+  const handleOtpSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: data.email, otp }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+      setShowOtpForm(false);
+      // Retry login
+      await login(data.email, data.password);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-By leveraging the latest features of **Next.js 14** and key functionalities like **server-side rendering (SSR)**, **static site generation (SSG)**, and seamless **API route integration**, **NextAdmin** ensures optimal performance. With the added benefits of **React 18 advancements** and **TypeScript** reliability, **NextAdmin** is the ultimate choice to kickstart your **Next.js** project efficiently.
+  const handleResendOtp = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/auth/resend-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: data.email }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+      setTimer(5 * 60); // Reset timer
+      setError('New OTP sent to your email');
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-## Installation
+  const formatTime = (seconds: number) => {
+    const min = Math.floor(seconds / 60);
+    const sec = seconds % 60;
+    return `${min}:${sec < 10 ? '0' : ''}${sec}`;
+  };
 
-1. Download/fork/clone the repo and Once you're in the correct directory, it's time to install all the necessary dependencies. You can do this by typing the following command:
-
-```
-npm install
-```
-If you're using **Yarn** as your package manager, the command will be:
-
-```
-yarn install
-```
-
-2. Okay, you're almost there. Now all you need to do is start the development server. If you're using **npm**, the command is:
-
-```
-npm run dev
-```
-And if you're using **Yarn**, it's:
-
-```
-yarn dev
-```
-
-And voila! You're now ready to start developing. **Happy coding**!
-
-## Highlighted Features
-**200+ Next.js Dashboard Ul Components and Templates** - includes a variety of prebuilt **Ul elements, components, pages, and examples** crafted with a high-quality design.
-Additionally, features seamless **essential integrations and extensive functionalities**.
-
-- A library of over **200** professional dashboard UI components and elements.
-- Five distinctive dashboard variations, catering to diverse use-cases.
-- A comprehensive set of essential dashboard and admin pages.
-- More than **45** **Next.js** files, ready for use.
-- Styling facilitated by **Tailwind CSS** files.
-- A design that resonates premium quality and high aesthetics.
-- A handy UI kit with assets.
-- Over ten web apps complete with examples.
-- Support for both **dark mode** and **light mode**.
-- Essential integrations including - Authentication (**NextAuth**), Database (**Postgres** with **Prisma**), and Search (**Algolia**).
-- Detailed and user-friendly documentation.
-- Customizable plugins and add-ons.
-- **TypeScript** compatibility.
-- Plus, much more!
-
-All these features and more make **NextAdmin** a robust, well-rounded solution for all your dashboard development needs.
-
-## Update Logs
-
-### Version 1.2.1 - [Mar 20, 2025]
-- Fix Peer dependency issues and NextConfig warning.
-- Updated apexcharts and react-apexhcarts to the latest version.
-
-### Version 1.2.0 - Major Upgrade and UI Improvements - [Jan 27, 2025]
-
-- Upgraded to Next.js v15 and updated dependencies
-- API integration with loading skeleton for tables and charts.
-- Improved code structure for better readability.
-- Rebuilt components like dropdown, sidebar, and all ui-elements using accessibility practices.
-- Using search-params to store dropdown selection and refetch data.
-- Semantic markups, better separation of concerns and more.
-
-### Version 1.1.0
-- Updated Dependencies
-- Removed Unused Integrations
-- Optimized App
-
-### Version 1.0
-- Initial Release - [May 13, 2024]
+  return (
+    <>
+      {!showOtpForm ? (
+        <form onSubmit={handleSubmit}>
+          <InputGroup
+            type="email"
+            label="Email"
+            className="mb-4 [&_input]:py-[15px]"
+            placeholder="Enter your email"
+            name="email"
+            handleChange={handleChange}
+            value={data.email}
+            icon={<EmailIcon />}
+          />
+          <InputGroup
+            type="password"
+            label="Password"
+            className="mb-5 [&_input]:py-[15px]"
+            placeholder="Enter your password"
+            name="password"
+            handleChange={handleChange}
+            value={data.password}
+            icon={<PasswordIcon />}
+          />
+          <div className="mb-6 flex items-center justify-between gap-2 py-2 font-medium">
+            <Checkbox
+              label="Remember me"
+              name="remember"
+              withIcon="check"
+              minimal
+              radius="md"
+              onChange={(e) => setData({ ...data, remember: e.target.checked })}
+            />
+            <Link
+              href="/auth/forgot-password"
+              className="hover:text-primary dark:text-white dark:hover:text-primary"
+            >
+              Forgot Password?
+            </Link>
+          </div>
+          {error && <div className="mb-4 text-red-500 text-sm">{error}</div>}
+          <div className="mb-4.5">
+            <button
+              type="submit"
+              className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary p-4 font-medium text-white transition hover:bg-opacity-90"
+              disabled={loading}
+            >
+              Sign In
+              {loading && (
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-t-transparent dark:border-primary dark:border-t-transparent" />
+              )}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <form onSubmit={handleOtpSubmit}>
+          <InputGroup
+            type="text"
+            label="Verification Code"
+            className="mb-4 [&_input]:py-[15px]"
+            placeholder="Enter 6-digit OTP"
+            name="otp"
+            handleChange={(e) => setOtp(e.target.value)}
+            value={otp}
+          />
+          <div className="mb-4 text-sm">
+            Time remaining: {formatTime(timer)}
+            {timer === 0 && <p className="text-red-500">OTP expired</p>}
+          </div>
+          {error && <div className="mb-4 text-red-500 text-sm">{error}</div>}
+          <div className="mb-4 flex gap-2">
+            <button
+              type="submit"
+              className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary p-4 font-medium text-white transition hover:bg-opacity-90"
+              disabled={loading || timer === 0}
+            >
+              Verify OTP
+              {loading && (
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-t-transparent dark:border-primary dark:border-t-transparent" />
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={handleResendOtp}
+              className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-gray-500 p-4 font-medium text-white transition hover:bg-opacity-90"
+              disabled={loading}
+            >
+              Resend OTP
+            </button>
+          </div>
+        </form>
+      )}
+    </>
+  );
+}

@@ -7,82 +7,82 @@ export const NAV_DATA = [
       {
         title: "Dashboard",
         icon: Icons.HomeIcon,
-        roles: ["SUPER_ADMIN", "ADMIN", "USER"],
+        roles: ["SUPER_ADMIN", "ADMIN", "USER", "MR"],
         items: [
           {
             title: "Analytics",
             url: "/",
-            roles: ["SUPER_ADMIN", "ADMIN", "USER"],
+            roles: ["SUPER_ADMIN", "ADMIN", "MR", "USER"],
           },
         ],
       },
       {
         title: "Audit",
         icon: Icons.PieChart,
-        roles: ["ADMIN"],
+        roles: ["ADMIN", "MR"],
         items: [
           {
             title: "Audit Programs",
             url: "/audit/audit-program",
-            roles: ["ADMIN"],
+            roles: ["ADMIN", "MR"],
           },
           {
             title: "Team Leaders",
             url: "/audit/internal",
-            roles: ["ADMIN"],
+            roles: ["ADMIN", "MR"],
           },
           {
             title: "General Audit Notification",
             url: "/audit/external",
-            roles: ["ADMIN"],
+            roles: ["ADMIN", "MR"],
           },
         ],
       },
       {
         title: "Document",
         icon: Icons.Folder,
-        roles: ["ADMIN"],
+        roles: ["ADMIN", "MR"],
         items: [
           {
             title: "Document",
             url: "/document",
-            roles: ["ADMIN"],
+            roles: ["ADMIN", "MR"],
           },
         ],
       },
       {
         title: "Non-Conforming Products",
         icon: Icons.AlertCircle,
-        roles: ["ADMIN"],
+        roles: ["ADMIN", "MR"],
         items: [
           {
             title: "Non-Conforming Products",
             url: "/non-conforming-products",
-            roles: ["ADMIN"],
+            roles: ["ADMIN", "MR"],
           },
         ],
       },
       {
         title: "Preventive Actions",
         icon: Icons.CheckCircle,
-        roles: ["ADMIN"],
+        roles: ["ADMIN", "MR"],
         items: [
           {
             title: "Preventive Actions",
             url: "/preventive-actions",
-            roles: ["ADMIN"],
+            roles: ["ADMIN", "MR"],
           },
         ],
       },
       {
         title: "Feedback",
         icon: Icons.Message,
-        roles: ["ADMIN"],
+        roles: ["ADMIN", "MR"],
         items: [
           {
             title: "Feedback",
             url: "/feedback",
-            roles: ["ADMIN"],
+            roles: ["ADMIN", "MR"],
           },
         ],
       },
@@ -94,43 +94,43 @@ export const NAV_DATA = [
           {
             title: "Risk Management",
             url: "/risk-management",
-            roles: ["ADMIN"],
+            roles: ["ADMIN", "MR"],
           },
         ],
       },
       {
         title: "Settings",
         icon: Icons.Settings,
-        roles: ["ADMIN"],
+        roles: ["ADMIN", "MR"],
         items: [
           {
             title: "Settings",
             url: "/settings",
-            roles: ["ADMIN"],
+            roles: ["ADMIN", "MR"],
           },
         ],
       },
       {
         title: "Reports",
         icon: Icons.BarChart,
-        roles: ["ADMIN"],
+        roles: ["ADMIN", "MR"],
         items: [
           {
             title: "Reports",
             url: "/reports",
-            roles: ["ADMIN"],
+            roles: ["ADMIN", "MR"],
           },
         ],
       },
       {
         title: "Help",
         icon: Icons.HelpCircle,
-        roles: ["ADMIN"],
+        roles: ["ADMIN", "MR"],
         items: [
           {
             title: "Help",
             url: "/help",
-            roles: ["ADMIN"],
+            roles: ["ADMIN", "MR"],
           },
         ],
       },
@@ -138,14 +138,14 @@ export const NAV_DATA = [
         title: "Calendar",
         icon: Icons.Calendar,
         url: "/calendar",
-        roles: ["SUPER_ADMIN", "ADMIN", "USER"],
+        roles: ["SUPER_ADMIN", "ADMIN", "USER", "MR"],
         items: [],
       },
       {
         title: "Profile",
         icon: Icons.User,
         url: "/profile",
-        roles: ["ADMIN", "USER"],
+        roles: ["ADMIN", "USER", "MR"],
         items: [],
       },
       {

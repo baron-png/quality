@@ -1,3 +1,5 @@
+import LodashModuleReplacementPlugin from "lodash-webpack-plugin";
+
 /** @type {import("next").NextConfig} */
 const nextConfig = {
   images: {
@@ -28,7 +30,16 @@ const nextConfig = {
         port: ""
       }
     ]
-  }
+  },
+  webpack(config) {
+    config.plugins.push(
+      new LodashModuleReplacementPlugin({
+        shorthands: false,
+        cloning: false,
+      })
+    );
+    return config;
+  },
 };
 
 export default nextConfig;
