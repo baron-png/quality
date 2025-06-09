@@ -1,5 +1,7 @@
 import * as logos from "@/assets/logos";
 
+// Removed unused import: import { useAuth } from "@/context/auth-context";
+
 export async function getTopProducts() {
   // Fake delay
   await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -71,11 +73,9 @@ export async function getInvoiceTableData() {
     },
   ];
 }
-export async function getInstitutions() {
-  const res = await fetch("http://localhost:5001/tenant/api/tenants", { cache: "no-store" });
-  if (!res.ok) throw new Error("Failed to fetch institutions");
-  return res.json();
-}
+
+
+
 export async function getTopChannels() {
   // Fake delay
   await new Promise((resolve) => setTimeout(resolve, 1500));

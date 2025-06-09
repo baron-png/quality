@@ -78,13 +78,13 @@ export default function SigninWithPassword() {
       <h2 id="signin-form" className="text-2xl font-bold text-center text-gray-800 dark:text-white">
         Sign In
       </h2>
-      <InputGroup
+           <InputGroup
         type="email"
         label="Email"
         className="mb-4"
         placeholder="Enter your email"
         name="email"
-        handleChange={handleChange}
+        onChange={handleChange} // <-- FIXED
         value={data.email}
         icon={<EmailIcon className="h-5 w-5 text-gray-400" />}
         required
@@ -96,7 +96,7 @@ export default function SigninWithPassword() {
         className="mb-5"
         placeholder="Enter your password"
         name="password"
-        handleChange={handleChange}
+        onChange={handleChange} // <-- FIXED
         value={data.password}
         icon={<PasswordIcon className="h-5 w-5 text-gray-400" />}
         required

@@ -761,13 +761,13 @@ export default function ManageInstitutionPage() {
   const [editingRole, setEditingRole] = useState<any>(null);
   const [editingUser, setEditingUser] = useState<any>(null);
 
-  const fetchData = async () => {
+   const fetchData = async () => {
     try {
       const [institutionData, usersData] = await Promise.all([
         fetchInstitutionDetails(user.tenantId, token),
         fetchUsers(user.tenantId, token),
       ]);
-      setInstitution(institutionData);
+      setInstitution(institutionData.details); // <-- FIX HERE
       setUsers(usersData);
     } catch (err: any) {
       setError(err.message);

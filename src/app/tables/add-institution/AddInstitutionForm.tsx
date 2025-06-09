@@ -1,67 +1,128 @@
 "use client";
-import React, { useState } from "react";
-import { createInstitution } from "@/api/tenantService";
-import InputGroup from "@/components/FormElements/InputGroup";
-import { useAuth } from "@/context/auth-context";
-import timezones from "@/utils/timezones.json";
+import React, { useState } from 'react';
 
-import { Select } from "@/components/FormElements/select";
-import { TextAreaGroup } from "@/components/FormElements/InputGroup/text-area";
+import InputGroup from '@/components/FormElements/InputGroup';
+import Select from '@/components/FormElements/select';
+import { TextAreaGroup } from '@/components/FormElements/InputGroup/text-area';
+import { useAuth } from '@/context/auth-context';
+import timezones from '@/utils/timezones.json';
+import { validateEmail, validatePassword } from '@/utils/validate';
+import { cn } from "@/lib/utils";
+import { createInstitution } from '@/api/tenantService';
 
-const initialState = {
-  name: "",
-  domain: "",
-  logoUrl: "",
-  address: "",
-  city: "",
-  state: "",
-  country: "",
-  phone: "",
-  email: "",
-  type: "UNIVERSITY",
-  accreditationNumber: "",
-  establishedYear: "",
-  timezone: "",
-  currency: "",
-  status: "PENDING",
+interface FormData {
+  name: string;
+  domain: string;
+  email: string;
+  type: string;
+  logoUrl: string;
+  address: string;
+  city: string;
+  county: string;
+  country: string;
+  phone: string;
+  accreditationNumber: string;
+  establishedYear: string;
+  timezone: string;
+  currency: string;
   adminUser: {
-    email: "",
-    firstName: "",
-    lastName: "",
-    password: "",
+    email: string;
+    firstName: string;
+    lastName: string;
+    password: string;
+  };
+}
+
+const initialState: FormData = {
+  name: '',
+  domain: '',
+  email: '',
+  type: 'UNIVERSITY',
+  logoUrl: '',
+  address: '',
+  city: '',
+  county: '',
+  country: 'Kenya',
+  phone: '',
+  accreditationNumber: '',
+  establishedYear: '',
+  timezone: 'Africa/Nairobi',
+  currency: 'KES',
+  adminUser: {
+    email: '',
+    firstName: '',
+    lastName: '',
+    password: '',
   },
 };
 
-export default function AddInstitutionForm() {
-  const [data, setData] = useState(initialState);
+const AddInstitutionForm: React.FC = () => {
+  const [data, setData] = useState<FormData>(initialState);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Partial<FormData & { adminUser: Partial<FormData['adminUser']> & { form?: string } }>>({});
   const [success, setSuccess] = useState<string | null>(null);
   const { token } = useAuth();
 
+  console.log('Auth token:', token); // Debug token
+
+    const validateForm = (): boolean => {
+    const newErrors: Partial<FormData & { adminUser: Partial<FormData['adminUser']> & { form?: string } }> = {};
+  
+    if (!data.name) newErrors.name = 'Institution name is required';
+    if (!data.domain) newErrors.domain = 'Domain is required';
+    if (!data.email) newErrors.email = 'Institution email is required';
+    else if (!validateEmail(data.email)) newErrors.email = 'Valid institution email is required';
+    if (!data.type) newErrors.type = 'Institution type is required';
+    if (!data.adminUser.email) newErrors.adminUser = { ...newErrors.adminUser, email: 'Admin email is required' };
+    else if (!validateEmail(data.adminUser.email)) newErrors.adminUser = { ...newErrors.adminUser, email: 'Valid admin email is required' };
+    if (!data.adminUser.firstName) newErrors.adminUser = { ...newErrors.adminUser, firstName: 'First name is required' };
+    if (!data.adminUser.lastName) newErrors.adminUser = { ...newErrors.adminUser, lastName: 'Last name is required' };
+    if (!data.adminUser.password) newErrors.adminUser = { ...newErrors.adminUser, password: 'Password is required' };
+    // Password format validation removed
+    if (data.email && data.adminUser.email && data.email === data.adminUser.email) {
+      newErrors.email = 'Institution and admin emails must be different';
+      newErrors.adminUser = { ...newErrors.adminUser, email: 'Institution and admin emails must be different' };
+    }
+  
+    setErrors(newErrors);
+    console.log('Validation errors:', newErrors); // Debug validation
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    if (name.startsWith("adminUser.")) {
+    console.log(`Input changed: ${name} = ${value}`); // Debug input changes
+    if (name.startsWith('adminUser.')) {
       setData((prev) => ({
         ...prev,
-        adminUser: { ...prev.adminUser, [name.replace("adminUser.", "")]: value },
+        adminUser: { ...prev.adminUser, [name.replace('adminUser.', '')]: value },
       }));
+      setErrors((prev) => ({ ...prev, adminUser: { ...prev.adminUser, [name.replace('adminUser.', '')]: undefined } }));
     } else {
       setData((prev) => ({ ...prev, [name]: value }));
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateForm()) return;
+    if (!token) {
+      setErrors({ form: 'Authentication token is missing. Please log in.' });
+      return;
+    }
     setLoading(true);
-    setError(null);
     setSuccess(null);
+    setErrors((prev) => ({ ...prev, form: undefined }));
     try {
-      await createInstitution(data, token);
-      setSuccess("Institution created successfully!");
+      // Remove county, add state, keep adminUser nested
+      const { county, ...rest } = data;
+      const payload = { ...rest, state: county };
+      const response = await createInstitution(payload, token);
+      setSuccess('Institution created successfully!');
       setData(initialState);
     } catch (err: any) {
-      setError(err.message);
+      setErrors((prev) => ({ ...prev, form: err.message || 'Failed to create institution' }));
     } finally {
       setLoading(false);
     }
@@ -75,72 +136,82 @@ export default function AddInstitutionForm() {
           label="Name"
           name="name"
           value={data.name}
-          handleChange={handleChange}
+          onChange={handleChange}
           required
           placeholder="Enter institution name"
+          error={errors.name}
         />
         <InputGroup
           label="Domain"
           name="domain"
           value={data.domain}
-          handleChange={handleChange}
+          onChange={handleChange}
           required
-            placeholder="Enter institution domain (e.g., example.edu)"
-            
-        />
-        <InputGroup
-          label="Logo URL"
-          name="logoUrl"
-          value={data.logoUrl}
-          handleChange={handleChange}
-            placeholder="Enter logo URL (optional)"
+          placeholder="e.g., www.example.ac.ke"
+          error={errors.domain}
         />
         <InputGroup
           label="Contact Email"
           name="email"
           value={data.email}
-          handleChange={handleChange}
+          onChange={handleChange}
           required
-            type="email"
+          type="email"
+          placeholder="e.g., info@example.ac.ke"
+          error={errors.email}
+        />
+        <InputGroup
+          label="Logo URL"
+          name="logoUrl"
+          value={data.logoUrl}
+          onChange={handleChange}
+          placeholder="Enter logo URL (optional)"
+          error={errors.logoUrl}
         />
         <InputGroup
           label="Phone"
           name="phone"
           value={data.phone}
-          handleChange={handleChange}
-            required
-          
+          onChange={handleChange}
+          placeholder="e.g., +254721981084"
+          error={errors.phone}
         />
         <InputGroup
           label="Accreditation Number"
           name="accreditationNumber"
           value={data.accreditationNumber}
-          handleChange={handleChange}
-            placeholder="Enter accreditation number (optional)"
+          onChange={handleChange}
+          placeholder="e.g., CUE-123456"
+          error={errors.accreditationNumber}
         />
         <InputGroup
           label="Established Year"
           name="establishedYear"
           value={data.establishedYear}
-          handleChange={handleChange}
-            placeholder="Enter established year (optional)"
+          onChange={handleChange}
+          placeholder="e.g., 2013"
+          error={errors.establishedYear}
         />
         <Select
-            label="Timezone"
-            name="timezone"
-            value={data.timezone}
-            onChange={handleChange}
-            items={timezones.map((tz) => ({
-                label: tz.text,
-                value: tz.utc[0], // or tz.value if you prefer
-            }))}
-            placeholder="Select timezone"
-            />
+          label="Timezone"
+          name="timezone"
+          value={data.timezone}
+          onChange={handleChange}
+          items={timezones.map((tz, idx) => ({
+            label: tz.text,
+            value: tz.utc?.[0] || tz.value || '',
+            key: `${tz.utc?.[0] || tz.value || 'tz'}-${idx}`,
+          }))}
+          placeholder="Select timezone"
+          error={errors.timezone}
+        />
         <InputGroup
           label="Currency"
           name="currency"
           value={data.currency}
-          handleChange={handleChange}
+          onChange={handleChange}
+          placeholder="e.g., KES"
+          error={errors.currency}
         />
         <Select
           label="Type"
@@ -148,84 +219,106 @@ export default function AddInstitutionForm() {
           value={data.type}
           onChange={handleChange}
           items={[
-            { label: "University", value: "UNIVERSITY" },
-            { label: "College", value: "COLLEGE" },
-            { label: "School", value: "SCHOOL" },
-            { label: "Institute", value: "INSTITUTE" },
-            { label: "Other", value: "OTHER" },
+            { label: 'University', value: 'UNIVERSITY', key: 'UNIVERSITY' },
+            { label: 'College', value: 'COLLEGE', key: 'COLLEGE' },
+            { label: 'School', value: 'SCHOOL', key: 'SCHOOL' },
+            { label: 'Institute', value: 'INSTITUTE', key: 'INSTITUTE' },
+            { label: 'Other', value: 'OTHER', key: 'OTHER' },
           ]}
+          required
+          placeholder="Select institution type"
+          error={errors.type}
         />
       </div>
-      <TextAreaGroup
+         <TextAreaGroup
         label="Address"
         name="address"
         value={data.address}
-        handleChange={handleChange}
+        handleChange={handleChange} // ✅ Correct prop name
+        placeholder="Enter address (optional)"
+        error={errors.address}
       />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <InputGroup
           label="City"
           name="city"
           value={data.city}
-          handleChange={handleChange}
+          onChange={handleChange}
+          placeholder="e.g., Nairobi"
+          error={errors.city}
         />
         <InputGroup
-          label="State"
-          name="state"
-          value={data.state}
-          handleChange={handleChange}
+          label="County"
+          name="county"
+          value={data.county}
+          onChange={handleChange}
+          placeholder="e.g., Nairobi"
+          error={errors.county}
         />
         <InputGroup
           label="Country"
           name="country"
           value={data.country}
-          handleChange={handleChange}
+          onChange={handleChange}
+          placeholder="e.g., Kenya"
+          error={errors.country}
         />
       </div>
 
-      <h3 className="text-xl font-semibold mt-8 mb-2">Admin User</h3>
+      <h3 className="text-xl font-semibold mt-8 mb-2">System Admin</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <InputGroup
           label="Admin Email"
           name="adminUser.email"
           value={data.adminUser.email}
-          handleChange={handleChange}
+          onChange={handleChange}
           required
+          type="email"
+          placeholder="e.g., admin@example.ac.ke"
+          error={errors.adminUser?.email}
         />
         <InputGroup
           label="First Name"
           name="adminUser.firstName"
           value={data.adminUser.firstName}
-          handleChange={handleChange}
+          onChange={handleChange}
           required
+          placeholder="e.g., John"
+          error={errors.adminUser?.firstName}
         />
         <InputGroup
           label="Last Name"
           name="adminUser.lastName"
           value={data.adminUser.lastName}
-          handleChange={handleChange}
+          onChange={handleChange}
           required
+          placeholder="e.g., Doe"
+          error={errors.adminUser?.lastName}
         />
         <InputGroup
           label="Password"
           name="adminUser.password"
           value={data.adminUser.password}
-          handleChange={handleChange}
-          type="password"
+          onChange={handleChange}
           required
+          type="password"
+          placeholder="Enter password"
+          error={errors.adminUser?.password}
         />
       </div>
 
-      {error && <div className="text-red-500">{error}</div>}
-      {success && <div className="text-green-600">{success}</div>}
+      {errors.form && <div className="text-error text-center">{errors.form}</div>}
+      {success && <div className="text-green-600 text-center">{success}</div>}
 
       <button
         type="submit"
         className="btn btn-primary w-full mt-4"
         disabled={loading}
       >
-        {loading ? "Creating..." : "Create Institution"}
+        {loading ? 'Creating...' : 'Create Institution'}
       </button>
     </form>
   );
-}
+};
+
+export default AddInstitutionForm;

@@ -1,5 +1,5 @@
 export async function createInstitution(data: any, token: string) {
-  const res = await fetch("http://localhost:5001/tenant/api/superadmin/tenants", {
+  const res = await fetch("http://localhost:5001/tenant/api/tenants", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -16,7 +16,7 @@ export async function createInstitution(data: any, token: string) {
 }
 
 export async function getInstitutions(token: string) {
-  const res = await fetch("http://localhost:5001/tenant/api/superadmin/tenants", {
+  const res = await fetch("http://localhost:5001/tenant/api/superadmin/tenant", {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,

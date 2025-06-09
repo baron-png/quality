@@ -1,0 +1,110 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+  output        = "../node_modules/.prisma/client"
+}
+
+model User {
+  id               String          @id @default(uuid())
+  email            String          @unique
+  password         String? // Optional, as document-service may not store passwords
+  verified         Boolean         @default(false)
+  tenantId         String
+  tenantName       String? // Optional, like tenant-service
+  firstName        String? // Optional to align with auth-service
+  lastName         String? // Optional to align with auth-service
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  userRoles        UserRole[] // Relation to UserRole
+  headedDepartment Department?     @relation("DepartmentHead") // Opposite relation for Department.head
+  departments      Department[]    @relation("DepartmentUsers") // New relation for user's departments
+  tenant           Tenant          @relation(fields: [tenantId], references: [id])
+  changeRequests   ChangeRequest[] @relation("UserChangeRequests")
+}
+
+model Role {
+  id          String     @id @default(uuid())
+  name        String // Removed unique constraint on name
+  description String?
+  tenantId    String
+  userRoles   UserRole[] // Relation to UserRole
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  tenant      Tenant     @relation(fields: [tenantId], references: [id])
+
+  @@unique([name, tenantId]) // Composite unique constraint
+}
+
+model UserRole {
+  userId    String
+  roleId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([userId, roleId]) // Composite primary key
+}
+
+model Tenant {
+  id          String       @id @default(uuid())
+  name        String
+  domain      String? // Optional, like tenant-service
+  email       String? // Optional, like tenant-service
+  type        String? // Optional, like tenant-service
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  roles       Role[]
+  users       User[]
+  departments Department[]
+}
+
+model Department {
+  id             String          @id @default(uuid())
+  name           String
+  code           String?         @unique // Optional, like tenant-service
+  tenantId       String
+  headId         String?         @unique
+  head           User?           @relation("DepartmentHead", fields: [headId], references: [id], onDelete: SetNull)
+  createdBy      String? // Optional, unlike tenant-service's required
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  users          User[]          @relation("DepartmentUsers") // New relation for department's users
+  tenant         Tenant          @relation(fields: [tenantId], references: [id])
+  changeRequests ChangeRequest[] @relation("DepartmentChangeRequests")
+}
+
+model Document {
+  id             String          @id @default(uuid())
+  title          String
+  category       String
+  version        String
+  revision       String
+  description    String
+  filePath       String
+  createdBy      String
+  tenantId       String
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  changeRequests ChangeRequest[]
+}
+
+model ChangeRequest {
+  id            String     @id @default(uuid())
+  documentId    String // Foreign key to Document
+  document      Document   @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  proposerId    String // Foreign key to User (proposer)
+  proposer      User       @relation("UserChangeRequests", fields: [proposerId], references: [id], onDelete: Cascade)
+  departmentId  String // Foreign key to Department
+  department    Department @relation("DepartmentChangeRequests", fields: [departmentId], references: [id], onDelete: Cascade)
+  tenantId      String // Add this field to track the tenant
+  section       String // Section or clause being changed
+  justification String // Justification for the change
+  status        String     @default("Pending") // Status: Pending, Approved, Declined
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+}

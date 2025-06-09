@@ -1,3 +1,4 @@
+"use client";
 import {
   Table,
   TableBody,
@@ -6,13 +7,27 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { compactFormat, standardFormat } from "@/lib/format-number";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { getInstitutions } from "../fetch";
+import { useAuth } from "@/context/auth-context";
+import { useEffect, useState } from "react";
+import { getInstitutions } from "@/api/tenantService";
 
-export async function TopChannels({ className }: { className?: string }) {
-  const data = await getInstitutions();
+export function TopChannels({ className }: { className?: string }) {
+  const { token } = useAuth();
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (token) {
+      getInstitutions(token)
+        .then((res) => setData(res.tenants ?? []))
+        .catch(() => setData([]))
+        .finally(() => setLoading(false));
+    }
+  }, [token]);
+
+  if (loading) return <div>Loading institutions...</div>;
 
   return (
     <div className={cn("grid rounded-[10px] bg-white px-7.5 pb-4 pt-7.5 shadow-1 dark:bg-gray-dark dark:shadow-card", className)}>
@@ -23,14 +38,15 @@ export async function TopChannels({ className }: { className?: string }) {
         <TableHeader>
           <TableRow className="border-none uppercase [&>th]:text-center">
             <TableHead className="min-w-[120px] !text-left">Profile</TableHead>
-            <TableHead>Users</TableHead>
-            <TableHead className="!text-right">Branches</TableHead>
+            <TableHead>Domain</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Phone</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Location</TableHead>
+            <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.map((institution: any, i: number) => (
+          {data.map((institution: any) => (
             <TableRow className="text-center text-base font-medium text-dark dark:text-white" key={institution.id}>
               <TableCell className="flex min-w-fit items-center gap-3">
                 <Image
@@ -43,11 +59,21 @@ export async function TopChannels({ className }: { className?: string }) {
                 />
                 <div>{institution.name}</div>
               </TableCell>
-              <TableCell>-</TableCell> {/* Placeholder for Users */}
-              <TableCell className="!text-right text-green-light-1">-</TableCell> {/* Placeholder for Branches */}
-              <TableCell>{institution.status}</TableCell>
+              <TableCell>{institution.domain}</TableCell>
+              <TableCell>{institution.email}</TableCell>
+              <TableCell>{institution.phone}</TableCell>
               <TableCell>
-                {[institution.city, institution.state, institution.country].filter(Boolean).join(", ")}
+                <span className={`px-2 py-1 rounded-full text-xs ${institution.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                  {institution.status}
+                </span>
+              </TableCell>
+              <TableCell>
+                <button
+                  className="px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 transition"
+                  onClick={() => alert(`View institution ${institution.id}`)}
+                >
+                  View
+                </button>
               </TableCell>
             </TableRow>
           ))}

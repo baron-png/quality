@@ -5,30 +5,32 @@ type InputGroupProps = {
   className?: string;
   label: string;
   placeholder: string;
-  type: HTMLInputTypeAttribute;
+  type?: HTMLInputTypeAttribute;
   fileStyleVariant?: "style1" | "style2";
   required?: boolean;
   disabled?: boolean;
   active?: boolean;
-  handleChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   value?: string;
   name?: string;
   icon?: React.ReactNode;
   iconPosition?: "left" | "right";
   height?: "sm" | "default";
   defaultValue?: string;
+  error?: string; // Added error prop
 };
 
 const InputGroup: React.FC<InputGroupProps> = ({
   className,
   label,
-  type,
+  type = "text",
   placeholder,
   required,
   disabled,
   active,
-  handleChange,
+  onChange,
   icon,
+  error,
   ...props
 }) => {
   const id = useId();
@@ -56,16 +58,17 @@ const InputGroup: React.FC<InputGroupProps> = ({
           type={type}
           name={props.name}
           placeholder={placeholder}
-          onChange={handleChange}
-          value={props.value}
+          onChange={onChange}
+          value={props.value ?? ""} // Default to empty string to avoid uncontrolled input
           defaultValue={props.defaultValue}
           className={cn(
             "w-full rounded-lg border-[1.5px] border-stroke bg-transparent outline-none transition focus:border-primary disabled:cursor-default disabled:bg-gray-2 data-[active=true]:border-primary dark:border-dark-3 dark:bg-dark-2 dark:focus:border-primary dark:disabled:bg-dark dark:data-[active=true]:border-primary",
             type === "file"
-              ? getFileStyles(props.fileStyleVariant!)
+              ? getFileStyles(props.fileStyleVariant ?? "style1")
               : "px-5.5 py-3 text-dark placeholder:text-dark-6 dark:text-white",
             props.iconPosition === "left" && "pl-12.5",
             props.height === "sm" && "py-2.5",
+            error && "border-red-500" // Highlight border on error
           )}
           required={required}
           disabled={disabled}
@@ -74,6 +77,8 @@ const InputGroup: React.FC<InputGroupProps> = ({
 
         {icon}
       </div>
+
+      {error && <p className="mt-1 text-sm text-red-500">{error}</p>} {/* Render error */}
     </div>
   );
 };
