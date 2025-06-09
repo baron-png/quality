@@ -15,6 +15,53 @@ export function Institution(props: SVGPropsType) {
     </svg>
   );
 }
+
+
+export function Audit(props: SVGPropsType) {
+  return (
+    <svg width={58} height={58} viewBox="0 0 58 58" fill="none" {...props}>
+      <circle cx={29} cy={29} r={29} fill="#FFB347" />
+      <rect x={18} y={18} width={22} height={22} rx={4} fill="#fff" />
+      <rect x={22} y={24} width={14} height={2} rx={1} fill="#FFB347" />
+      <rect x={22} y={29} width={10} height={2} rx={1} fill="#FFB347" />
+      <circle cx={36} cy={36} r={3} fill="#FFB347" />
+    </svg>
+  );
+}
+
+export function Document(props: SVGPropsType) {
+  return (
+    <svg width={58} height={58} viewBox="0 0 58 58" fill="none" {...props}>
+      <circle cx={29} cy={29} r={29} fill="#6EC1E4" />
+      <rect x={18} y={18} width={22} height={22} rx={4} fill="#fff" />
+      <rect x={22} y={24} width={14} height={2} rx={1} fill="#6EC1E4" />
+      <rect x={22} y={29} width={10} height={2} rx={1} fill="#6EC1E4" />
+      <rect x={22} y={34} width={8} height={2} rx={1} fill="#6EC1E4" />
+    </svg>
+  );
+}
+
+export function Risk(props: SVGPropsType) {
+  return (
+    <svg width={58} height={58} viewBox="0 0 58 58" fill="none" {...props}>
+      <circle cx={29} cy={29} r={29} fill="#FF6B6B" />
+      <polygon points="29,16 44,42 14,42" fill="#fff" />
+      <rect x={27} y={28} width={4} height={8} rx={2} fill="#FF6B6B" />
+      <circle cx={29} cy={38} r={2} fill="#FF6B6B" />
+    </svg>
+  );
+}
+
+export function Student(props: SVGPropsType) {
+  return (
+    <svg width={58} height={58} viewBox="0 0 58 58" fill="none" {...props}>
+      <circle cx={29} cy={29} r={29} fill="#7ED957" />
+      <ellipse cx={29} cy={28} rx={8} ry={8} fill="#fff" />
+      <ellipse cx={29} cy={38} rx={12} ry={5} fill="#fff" />
+      <rect x={25} y={24} width={8} height={2} rx={1} fill="#7ED957" />
+    </svg>
+  );
+}
 // New Clients icon: two people with a "plus" sign
 export function NewClients(props: SVGPropsType) {
   return (

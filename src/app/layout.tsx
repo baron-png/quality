@@ -1,7 +1,7 @@
 import "@/css/satoshi.css";
 import "@/css/style.css";
 import '@syncfusion/ej2-react-documenteditor/styles/material.css';
-
+import { Toaster } from "react-hot-toast";
 import { Sidebar } from "@/components/Layouts/sidebar";
 
 import "flatpickr/dist/flatpickr.min.css";
@@ -28,6 +28,17 @@ export default function RootLayout({ children }: PropsWithChildren) {
       <body>
         <Providers>
           <NextTopLoader color="#5750F1" showSpinner={false} />
+        <Toaster
+            position="top-right"
+            toastOptions={{
+              className: "bg-white dark:bg-gray-2",
+              style: {
+                color: "#000",
+                fontSize: "14px",
+                fontFamily: "Satoshi, sans-serif",
+              },
+            }}
+          />
 
           <div className="flex min-h-screen">
             <Sidebar />

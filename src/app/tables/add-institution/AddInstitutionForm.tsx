@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from 'react';
-
+import toast from "react-hot-toast";
 import InputGroup from '@/components/FormElements/InputGroup';
 import Select from '@/components/FormElements/select';
 import { TextAreaGroup } from '@/components/FormElements/InputGroup/text-area';
@@ -9,7 +9,7 @@ import timezones from '@/utils/timezones.json';
 import { validateEmail, validatePassword } from '@/utils/validate';
 import { cn } from "@/lib/utils";
 import { createInstitution } from '@/api/tenantService';
-
+import { useRouter } from "next/navigation";
 interface FormData {
   name: string;
   domain: string;
@@ -62,6 +62,7 @@ const AddInstitutionForm: React.FC = () => {
   const [errors, setErrors] = useState<Partial<FormData & { adminUser: Partial<FormData['adminUser']> & { form?: string } }>>({});
   const [success, setSuccess] = useState<string | null>(null);
   const { token } = useAuth();
+    const router = useRouter();
 
   console.log('Auth token:', token); // Debug token
 
@@ -105,28 +106,38 @@ const AddInstitutionForm: React.FC = () => {
   };
 
     const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-    if (!token) {
-      setErrors({ form: 'Authentication token is missing. Please log in.' });
-      return;
-    }
-    setLoading(true);
-    setSuccess(null);
-    setErrors((prev) => ({ ...prev, form: undefined }));
-    try {
-      // Remove county, add state, keep adminUser nested
-      const { county, ...rest } = data;
-      const payload = { ...rest, state: county };
-      const response = await createInstitution(payload, token);
-      setSuccess('Institution created successfully!');
-      setData(initialState);
-    } catch (err: any) {
-      setErrors((prev) => ({ ...prev, form: err.message || 'Failed to create institution' }));
-    } finally {
-      setLoading(false);
-    }
-  };
+      e.preventDefault();
+      if (!validateForm()) return;
+      if (!token) {
+        setErrors({ form: 'Authentication token is missing. Please log in.' });
+        return;
+      }
+      setLoading(true);
+      setSuccess(null);
+      setErrors((prev) => ({ ...prev, form: undefined }));
+      try {
+        const { county, ...rest } = data;
+        const payload = { ...rest, state: county };
+        const response = await createInstitution(payload, token);
+    
+        // Check for a property that indicates success
+        if (response && (response.isSystemAdminCreated || response.tenant)) {
+          setSuccess('Institution created successfully!');
+          toast.success('Institution created successfully!');
+          setData(initialState);
+          setTimeout(() => {
+    router.push("/tables");
+  }, 1200);
+        } else {
+          throw new Error('Institution creation failed. Please try again.');
+        }
+      } catch (err: any) {
+        setErrors((prev) => ({ ...prev, form: err.message || 'Failed to create institution' }));
+        toast.error(err.message || 'Failed to create institution');
+      } finally {
+        setLoading(false);
+      }
+    };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 bg-white p-8 rounded-lg shadow max-w-2xl mx-auto">

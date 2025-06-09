@@ -1,6 +1,6 @@
 import { ArrowDownIcon, ArrowUpIcon } from "@/assets/icons";
 import { cn } from "@/lib/utils";
-import type { JSX, SVGProps } from "react";
+import type { JSX, SVGProps, ReactNode } from "react";
 
 type PropsType = {
   label: string;
@@ -9,9 +9,10 @@ type PropsType = {
     growthRate: number;
   };
   Icon: (props: SVGProps<SVGSVGElement>) => JSX.Element;
+  children?: ReactNode; // <-- Add this line
 };
 
-export function OverviewCard({ label, data, Icon }: PropsType) {
+export function OverviewCard({ label, data, Icon, children }: PropsType) {
   const isDecreasing = data.growthRate < 0;
 
   return (
@@ -23,10 +24,8 @@ export function OverviewCard({ label, data, Icon }: PropsType) {
           <dt className="mb-1.5 text-heading-6 font-bold text-dark dark:text-white">
             {data.value}
           </dt>
-
           <dd className="text-sm font-medium text-dark-6">{label}</dd>
         </dl>
-
         <dl
           className={cn(
             "text-sm font-medium",
@@ -41,13 +40,15 @@ export function OverviewCard({ label, data, Icon }: PropsType) {
               <ArrowUpIcon aria-hidden />
             )}
           </dt>
-
           <dd className="sr-only">
             {label} {isDecreasing ? "Decreased" : "Increased"} by{" "}
             {data.growthRate}%
           </dd>
         </dl>
       </div>
+      {children && (
+        <div className="mt-4">{children}</div> // <-- Render children if present
+      )}
     </div>
   );
 }
