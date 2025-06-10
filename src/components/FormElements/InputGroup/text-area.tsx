@@ -6,7 +6,8 @@ interface TextAreaGroupProps {
   handleChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   placeholder?: string;
   required?: boolean;
-  error?: string; // ✅ ADD THIS
+  error?: string;
+  disabled?: boolean; // Optional prop to disable the textarea
 }
 
 
@@ -22,6 +23,7 @@ const TextAreaGroup: React.FC<TextAreaGroupProps> = ({ label, name, value, handl
         value={value}
         onChange={handleChange}
         placeholder={placeholder}
+        disabled={false} // You can set this to true if you want to disable the textarea
         required={required}
         className="border rounded-md p-2 resize-y min-h-[100px]"
       />

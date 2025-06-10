@@ -17,6 +17,7 @@ const roleRoutes = {
   SUPER_ADMIN: "/",
   STAFF: "/lecturer/dashboard",
   ADMIN: "/admin",
+  SYSTEM_ADMIN: "/admin",
   TRAINER: "/lecturer/dashboard",
   TRAINEE: "/student/dashboard",
   AUDITOR: "/auditor-staff/dashboard",

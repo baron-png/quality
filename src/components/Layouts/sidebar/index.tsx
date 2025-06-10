@@ -18,8 +18,8 @@ const hasRole = (itemRoles: string[] | undefined, userRoles: string[]) => {
 };
 
 export function Sidebar() {
-  const { user } = useAuth();
-  const userRoles = user?.roles?.map((r: any) => r.name) || [];
+    const { user } = useAuth();
+  const userRoles = user?.roles?.map((r) => r.name) || [];
   const pathname = usePathname();
   const { setIsOpen, isOpen, isMobile, toggleSidebar } = useSidebarContext();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);

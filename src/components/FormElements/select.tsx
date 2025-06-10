@@ -15,6 +15,7 @@ interface SelectProps {
   placeholder?: string;
   required?: boolean;
   error?: string;
+  disabled?: boolean; // <-- Add this
 }
 
 const Select: React.FC<SelectProps> = ({
@@ -26,6 +27,7 @@ const Select: React.FC<SelectProps> = ({
   placeholder,
   required,
   error,
+  disabled,
 }) => {
   return (
     <div className="flex flex-col gap-2">
@@ -38,6 +40,7 @@ const Select: React.FC<SelectProps> = ({
         value={value}
         onChange={onChange}
         required={required}
+        disabled={disabled} // Use the disabled prop here
         className="border rounded-md p-2"
       >
         {placeholder && (
