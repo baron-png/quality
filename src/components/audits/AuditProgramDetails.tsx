@@ -1,3 +1,5 @@
+
+"use client";
 import { useState } from "react";
 import { Button, Typography, Table, TableBody, TableCell, TableHead, TableRow, Box, TextField } from "@mui/material";
 
