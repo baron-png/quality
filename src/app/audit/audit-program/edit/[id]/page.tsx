@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
-import AuditProgramForm from "@/app/audit/audit-program/create/AuditProgramForm";
+import AuditProgramForm from "@/components/audits/AuditProgramForm";
 import { getAuditProgramById, updateAuditProgram } from "@/api/auditService";
 import { useRouter } from "next/navigation";
 
