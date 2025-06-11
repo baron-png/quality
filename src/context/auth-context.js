@@ -1,14 +1,17 @@
 "use client";
-import OtpVerificationModal from "@/components/Auth/OtpVerificationModal";
-import { verifyOtpApi, resendOtpApi } from "@/api/authOtp";
+
 import React, { createContext, useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
+import OtpVerificationModal from "@/components/Auth/OtpVerificationModal";
+import { verifyOtpApi, resendOtpApi } from "@/api/authOtp";
+import { Box } from "lucide-react";
+import { CircularProgress } from "@mui/material";
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api",
-  headers: { "Content-Type": "application/json" },
+  withCredentials: true, // Enable cookie-based auth
 });
 
 const AuthContext = createContext();
@@ -35,32 +38,34 @@ export const AuthProvider = ({ children }) => {
   const [otpEmail, setOtpEmail] = useState("");
   const router = useRouter();
 
+  // Axios interceptor for token refresh
+  useEffect(() => {
+    const interceptor = api.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        const originalRequest = error.config;
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true;
+          await refreshToken();
+          api.defaults.headers.Authorization = `Bearer ${token}`;
+          return api(originalRequest);
+        }
+        return Promise.reject(error);
+      }
+    );
+    return () => api.interceptors.response.eject(interceptor);
+  }, [token]);
+
   useEffect(() => {
     const checkUserLoggedIn = async () => {
-      const accessToken = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
-      if (!accessToken) {
-        setLoading(false);
-        return;
-      }
-
       try {
-        api.defaults.headers.Authorization = `Bearer ${accessToken}`;
-        const response = await api.get("/me");
+        const response = await api.get("/me", { withCredentials: true });
         const primaryRole = response.data.roles?.[0]?.name || "default";
         setUser({ ...response.data, primaryRole });
-        setToken(accessToken);
+        setToken(response.data.accessToken || localStorage.getItem("accessToken")); // Fallback to localStorage if cookie not set yet
       } catch (error) {
-        if (error.response?.status === 401) {
-          await refreshToken();
-        } else {
-          toast.error(error.response?.data?.error?.message || "Failed to fetch user data");
-          setUser(null);
-          localStorage.removeItem("accessToken");
-          sessionStorage.removeItem("accessToken");
-          localStorage.removeItem("refreshToken");
-          sessionStorage.removeItem("refreshToken");
-          router.push("/auth/sign-in");
-        }
+        toast.error(error.response?.data?.error?.message || "Session expired. Please log in again.");
+        logout();
       } finally {
         setLoading(false);
       }
@@ -69,28 +74,17 @@ export const AuthProvider = ({ children }) => {
     checkUserLoggedIn();
   }, []);
 
-  useEffect(() => {
-    console.log("showOtpModal changed:", showOtpModal); // Debug log for modal state
-  }, [showOtpModal]);
-
   const refreshToken = async () => {
     try {
-      const refreshToken = localStorage.getItem("refreshToken") || sessionStorage.getItem("refreshToken");
-      if (!refreshToken) throw new Error("No refresh token available");
-      const response = await api.post("/refresh", { refreshToken });
+      const response = await api.post("/refresh", {}, { withCredentials: true });
       const newAccessToken = response.data.accessToken;
-      if (localStorage.getItem("accessToken")) {
-        localStorage.setItem("accessToken", newAccessToken);
-      } else {
-        sessionStorage.setItem("accessToken", newAccessToken);
-      }
       setToken(newAccessToken);
       api.defaults.headers.Authorization = `Bearer ${newAccessToken}`;
-      const userResponse = await api.get("/me");
+      const userResponse = await api.get("/me", { withCredentials: true });
       const primaryRole = userResponse.data.roles?.[0]?.name || "default";
       setUser({ ...userResponse.data, primaryRole });
     } catch (error) {
-      toast.error(error.response?.data?.error?.message || "Session expired. Please log in again.");
+      toast.error("Session expired. Please log in again.");
       logout();
     }
   };
@@ -98,48 +92,35 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     setLoading(true);
     try {
-      const response = await api.post("/login", { email, password });
-      // Check for OTP verification requirement
+      const response = await api.post("/login", { email, password }, { withCredentials: true });
       if (response.data.requiresVerification) {
         setOtpEmail(email);
         setShowOtpModal(true);
         toast.info("Please verify your email with the OTP sent.");
-        return; // Stop further processing
+        return;
       }
-      // Normal login flow
-      const primaryRole = response.data.user.roles?.[0]?.name || "default";
-      setUser({ ...response.data.user, primaryRole });
-      setToken(response.data.accessToken);
-      localStorage.setItem("accessToken", response.data.accessToken);
-      localStorage.setItem("refreshToken", response.data.refreshToken);
+      const { accessToken } = response.data; // Refresh token is in cookie
+      setToken(accessToken);
+      localStorage.setItem("accessToken", accessToken); // Temporary fallback
+      api.defaults.headers.Authorization = `Bearer ${accessToken}`;
+      const meRes = await api.get("/me", { withCredentials: true });
+      const primaryRole = meRes.data.roles?.[0]?.name || "default";
+      setUser({ ...meRes.data, primaryRole });
       router.push(getRedirectRoute(primaryRole));
     } catch (error) {
-      const message =
-        error.response?.data?.error?.message ||
-        (typeof error.message === "string" ? error.message : "Login failed");
-      if (message.includes("Email not verified")) {
-        setOtpEmail(email);
-        setShowOtpModal(true);
-        toast.info("Please verify your email with the OTP sent.");
-      } else {
-        toast.error(message);
-      }
-      throw new Error(message);
+      toast.error(error.response?.data?.error?.message || "Login failed");
     } finally {
       setLoading(false);
     }
   };
+
   const logout = async () => {
     setLoading(true);
     try {
-      const refreshToken = localStorage.getItem("refreshToken") || sessionStorage.getItem("refreshToken");
-      await api.post("/logout", { refreshToken });
+      await api.post("/logout", {}, { withCredentials: true });
       setUser(null);
       setToken(null);
       localStorage.removeItem("accessToken");
-      sessionStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-      sessionStorage.removeItem("refreshToken");
       router.push("/auth/sign-in");
     } catch (error) {
       toast.error(error.response?.data?.error?.message || "Logout failed");
@@ -152,6 +133,8 @@ export const AuthProvider = ({ children }) => {
     setShowOtpModal(false);
     setOtpEmail("");
     toast.success("Email verified! Please log in.");
+    // Trigger login again after OTP verification if needed
+    // login(otpEmail, password); // Add password param if required
   };
 
   const handleOtpClose = () => {
@@ -159,22 +142,17 @@ export const AuthProvider = ({ children }) => {
     setOtpEmail("");
   };
 
-  console.log("Rendering AuthProvider, showOtpModal:", showOtpModal); // Debug log
-
   return (
     <AuthContext.Provider value={{ user, loading, token, login, logout }}>
       {children}
       {showOtpModal && (
-        <>
-          {console.log("Rendering OtpVerificationModal for email:", otpEmail)} {/* Debug log */}
-          <OtpVerificationModal
-            email={otpEmail}
-            onVerified={handleOtpVerified}
-            onClose={handleOtpClose}
-            verifyOtpApi={verifyOtpApi}
-            resendOtpApi={resendOtpApi}
-          />
-        </>
+        <OtpVerificationModal
+          email={otpEmail}
+          onVerified={handleOtpVerified}
+          onClose={handleOtpClose}
+          verifyOtpApi={verifyOtpApi}
+          resendOtpApi={resendOtpApi}
+        />
       )}
     </AuthContext.Provider>
   );

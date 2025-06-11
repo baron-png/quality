@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
-
 import AuditProgramDetails from "@/components/audits/AuditProgramDetails";
 import { getAuditProgramById } from "@/api/auditService";
 
@@ -19,7 +18,11 @@ export default function AuditProgramDetailsPage() {
       setLoading(true);
       try {
         const programData = await getAuditProgramById(id as string, token);
-        setProgram(programData);
+        // Ensure audits array exists, default to 7 empty audits if not
+        const audits = programData.audits || Array(7).fill({}).map(() => ({
+          scope: [], specificAuditObjectives: [], methods: [], auditDateFrom: "", auditDateTo: "", teamLeaderDate: "", teamMembersDate: "", followUpDateFrom: "", followUpDateTo: "", managementReviewDateFrom: "", managementReviewDateTo: ""
+        }));
+        setProgram({ ...programData, audits });
       } catch (error: any) {
         console.error("Failed to fetch audit program:", error.message);
       } finally {

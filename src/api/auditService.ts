@@ -21,6 +21,32 @@ export async function fetchAuditPrograms(token: string, role: string) {
     return []; // Return empty array to avoid breaking the UI
   }
 }
+export async function createAuditForProgram(
+  programId: string,
+  audit: {
+    scope: string[];
+    specificAuditObjectives: string[];
+    methods: string[];
+    criteria: string[];
+    auditNumber: string; // <-- Add this
+  },
+  token: string
+) {
+  const response = await fetch(`http://localhost:5004/api/audit-programs/${programId}/audits`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(audit),
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to create audit");
+  }
+  return response.json();
+}
+
 export async function getAuditProgramById(id: string, token: string) {
   const response = await fetch(`http://localhost:5004/api/audit-programs/${id}`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -31,6 +57,7 @@ export async function getAuditProgramById(id: string, token: string) {
   }
   return response.json();
 }
+
 export async function updateAuditProgram(id: string, updatedProgram: any, token: string) {
   const response = await fetch(`http://localhost:5004/api/audit-programs/${id}`, {
     method: "PUT",

@@ -50,6 +50,19 @@ export default function AuditProgramForm({ initialData, onSubmit, mode }: AuditP
     setIsClient(true);
   }, []);
 
+  // Ensure tenantId, tenantName, createdBy are set when user is loaded
+  useEffect(() => {
+    if (user && (!newProgram.tenantId || !newProgram.tenantName || !newProgram.createdBy)) {
+      setNewProgram((prev) => ({
+        ...prev,
+        tenantId: user.tenantId,
+        tenantName: user.tenantName,
+        createdBy: user.id,
+      }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setNewProgram((prev) => ({ ...prev, [name]: value }));
@@ -90,7 +103,7 @@ export default function AuditProgramForm({ initialData, onSubmit, mode }: AuditP
         <AuditProgramDetails
           program={{
             ...newProgram,
-            audits: [], // Ensure audits is an empty array of type Audit[]
+            audits: [],
           }}
           onBack={() => setShowDetails(false)}
         />
@@ -110,76 +123,78 @@ export default function AuditProgramForm({ initialData, onSubmit, mode }: AuditP
               borderColor: "grey.200",
             }}
           >
-            <TextField
-              label="Program Name"
-              name="name"
-              value={newProgram.name}
-              onChange={handleInputChange}
-              fullWidth
-              className="mb-4"
-              required
-              error={!!errors.name}
-              helperText={errors.name}
-              variant="outlined"
-            />
-            <AuditObjectiveInput
-              value={newProgram.auditProgramObjective}
-              onChange={(value: string) =>
-                setNewProgram((prev) => ({ ...prev, auditProgramObjective: value }))
-              }
-            />
-            <TextField
-              label="Start Date"
-              name="startDate"
-              type="date"
-              value={newProgram.startDate}
-              onChange={handleInputChange}
-              fullWidth
-              className="mb-4"
-              required
-              error={!!errors.startDate}
-              helperText={errors.startDate}
-              InputLabelProps={{ shrink: true }}
-              variant="outlined"
-            />
-            <TextField
-              label="End Date"
-              name="endDate"
-              type="date"
-              value={newProgram.endDate}
-              onChange={handleInputChange}
-              fullWidth
-              className="mb-4"
-              required
-              error={!!errors.endDate}
-              helperText={errors.endDate}
-              InputLabelProps={{ shrink: true }}
-              variant="outlined"
-            />
-
-            <Box className="flex justify-between mt-6">
-              <Button
+            <form onSubmit={handleSubmit}>
+              <TextField
+                label="Program Name"
+                name="name"
+                value={newProgram.name}
+                onChange={handleInputChange}
+                fullWidth
+                className="mb-4"
+                required
+                error={!!errors.name}
+                helperText={errors.name}
                 variant="outlined"
-                color="secondary"
-                onClick={() => router.push("/audit/audit-programs?tab=draft")}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleSubmit}
-                disabled={!isFormComplete()}
-                startIcon={isFormComplete() ? <CheckCircleIcon /> : undefined}
-              >
-                {mode === "create" ? "Create Program" : "Save Changes"}
-              </Button>
-            </Box>
-            {errors.submit && (
-              <Typography variant="body2" color="error" className="mt-2">
-                {errors.submit}
-              </Typography>
-            )}
+              />
+              <AuditObjectiveInput
+                value={newProgram.auditProgramObjective}
+                onChange={(value: string) =>
+                  setNewProgram((prev) => ({ ...prev, auditProgramObjective: value }))
+                }
+              />
+              <TextField
+                label="Start Date"
+                name="startDate"
+                type="date"
+                value={newProgram.startDate}
+                onChange={handleInputChange}
+                fullWidth
+                className="mb-4"
+                required
+                error={!!errors.startDate}
+                helperText={errors.startDate}
+                InputLabelProps={{ shrink: true }}
+                variant="outlined"
+              />
+              <TextField
+                label="End Date"
+                name="endDate"
+                type="date"
+                value={newProgram.endDate}
+                onChange={handleInputChange}
+                fullWidth
+                className="mb-4"
+                required
+                error={!!errors.endDate}
+                helperText={errors.endDate}
+                InputLabelProps={{ shrink: true }}
+                variant="outlined"
+              />
+
+              <Box className="flex justify-between mt-6">
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  onClick={() => router.push("/audit/audit-programs?tab=draft")}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  type="submit"
+                  disabled={!isFormComplete()}
+                  startIcon={isFormComplete() ? <CheckCircleIcon /> : undefined}
+                >
+                  {mode === "create" ? "Create Program" : "Save Changes"}
+                </Button>
+              </Box>
+              {errors.submit && (
+                <Typography variant="body2" color="error" className="mt-2">
+                  {errors.submit}
+                </Typography>
+              )}
+            </form>
           </Box>
         </>
       )}

@@ -1,7 +1,7 @@
-
-"use client";
 import { useState } from "react";
-import { Button, Typography, Table, TableBody, TableCell, TableHead, TableRow, Box, TextField } from "@mui/material";
+import { Box, Button, Typography } from "@mui/material";
+import { useRouter } from "next/navigation";
+import AuditTable from "./AuditTable";
 
 interface Audit {
   scope: string[];
@@ -18,6 +18,7 @@ interface Audit {
 }
 
 interface AuditProgram {
+  id: string;
   name: string;
   auditProgramObjective: string;
   status: string;
@@ -35,161 +36,55 @@ interface AuditProgramDetailsProps {
 }
 
 const AuditProgramDetails: React.FC<AuditProgramDetailsProps> = ({ program, onBack }) => {
-  const [audits, setAudits] = useState<Audit[]>(program.audits || [
-    { scope: [], specificAuditObjectives: [], methods: [], auditDateFrom: "", auditDateTo: "", teamLeaderDate: "", teamMembersDate: "", followUpDateFrom: "", followUpDateTo: "", managementReviewDateFrom: "", managementReviewDateTo: "" },
-    { scope: [], specificAuditObjectives: [], methods: [], auditDateFrom: "", auditDateTo: "", teamLeaderDate: "", teamMembersDate: "", followUpDateFrom: "", followUpDateTo: "", managementReviewDateFrom: "", managementReviewDateTo: "" },
-    { scope: [], specificAuditObjectives: [], methods: [], auditDateFrom: "", auditDateTo: "", teamLeaderDate: "", teamMembersDate: "", followUpDateFrom: "", followUpDateTo: "", managementReviewDateFrom: "", managementReviewDateTo: "" },
-    { scope: [], specificAuditObjectives: [], methods: [], auditDateFrom: "", auditDateTo: "", teamLeaderDate: "", teamMembersDate: "", followUpDateFrom: "", followUpDateTo: "", managementReviewDateFrom: "", managementReviewDateTo: "" },
-    { scope: [], specificAuditObjectives: [], methods: [], auditDateFrom: "", auditDateTo: "", teamLeaderDate: "", teamMembersDate: "", followUpDateFrom: "", followUpDateTo: "", managementReviewDateFrom: "", managementReviewDateTo: "" },
-    { scope: [], specificAuditObjectives: [], methods: [], auditDateFrom: "", auditDateTo: "", teamLeaderDate: "", teamMembersDate: "", followUpDateFrom: "", followUpDateTo: "", managementReviewDateFrom: "", managementReviewDateTo: "" },
-    { scope: [], specificAuditObjectives: [], methods: [], auditDateFrom: "", auditDateTo: "", teamLeaderDate: "", teamMembersDate: "", followUpDateFrom: "", followUpDateTo: "", managementReviewDateFrom: "", managementReviewDateTo: "" },
-  ]);
+  const [audits, setAudits] = useState<Audit[]>(
+    program.audits.length ? program.audits : Array(7).fill({
+      scope: [],
+      specificAuditObjectives: [],
+      methods: [],
+      auditDateFrom: "",
+      auditDateTo: "",
+      teamLeaderDate: "",
+      teamMembersDate: "",
+      followUpDateFrom: "",
+      followUpDateTo: "",
+      managementReviewDateFrom: "",
+      managementReviewDateTo: "",
+    })
+  );
 
-  const handleInputChange = (index: number, field: string, value: string | string[]) => {
+  const router = useRouter();
+
+  const handleInputChange = (index: number, field: string, value: string) => {
     const newAudits = [...audits];
     newAudits[index] = { ...newAudits[index], [field]: value };
     setAudits(newAudits);
   };
 
-  return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <Typography variant="h4" component="h1" className="mb-6 font-bold text-gray-800">
-        {program.name}
-      </Typography>
-      <Typography variant="h6" className="mb-4">
-        Objectives: {program.auditProgramObjective}
-      </Typography>
+  const handleOpenAuditDetails = (index: number) => {
+    router.push(`/audit/audit-program/details/${program.id}/audit/${index}`);
+  };
 
-      <Box sx={{ bgcolor: "white", boxShadow: 3, p: 4, borderRadius: 2, border: "1px solid", borderColor: "grey.200" }}>
-        <Typography variant="h6" className="mb-4">Audit Component</Typography>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Audit Number</TableCell>
-              <TableCell>1st Internal Audit</TableCell>
-              <TableCell>1st Surveillance Audit</TableCell>
-              <TableCell>2nd Internal Audit</TableCell>
-              <TableCell>2nd Surveillance Audit</TableCell>
-              <TableCell>3rd Internal Audit</TableCell>
-              <TableCell>Re-certification Audit</TableCell>
-              <TableCell>Action</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            <TableRow>
-              <TableCell rowSpan={5}>→</TableCell>
-              {audits.map((audit, index) => (
-                <TableCell key={index}>
-                  <Button variant="contained" color="primary" onClick={() => {/* Handle Open */}}>
-                    Open
-                  </Button>
-                </TableCell>
-              ))}
-              <TableCell rowSpan={5}></TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell colSpan={8}>Objective(s), Scope, Criteria and Methods</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>Audit Date(s)</TableCell>
-              {audits.map((audit, index) => (
-                <TableCell key={index}>
-                  <TextField
-                    type="date"
-                    value={audit.auditDateFrom}
-                    onChange={(e) => handleInputChange(index, "auditDateFrom", e.target.value)}
-                    InputLabelProps={{ shrink: true }}
-                    variant="outlined"
-                    size="small"
-                  /> - <TextField
-                    type="date"
-                    value={audit.auditDateTo}
-                    onChange={(e) => handleInputChange(index, "auditDateTo", e.target.value)}
-                    InputLabelProps={{ shrink: true }}
-                    variant="outlined"
-                    size="small"
-                  />
-                </TableCell>
-              ))}
-            </TableRow>
-            <TableRow>
-              <TableCell>Appointment of Team Leader(s)</TableCell>
-              {audits.map((audit, index) => (
-                <TableCell key={index}>
-                  <TextField
-                    type="date"
-                    value={audit.teamLeaderDate}
-                    onChange={(e) => handleInputChange(index, "teamLeaderDate", e.target.value)}
-                    InputLabelProps={{ shrink: true }}
-                    variant="outlined"
-                    size="small"
-                  />
-                </TableCell>
-              ))}
-            </TableRow>
-            <TableRow>
-              <TableCell>Appointment of Team Members</TableCell>
-              {audits.map((audit, index) => (
-                <TableCell key={index}>
-                  <TextField
-                    type="date"
-                    value={audit.teamMembersDate}
-                    onChange={(e) => handleInputChange(index, "teamMembersDate", e.target.value)}
-                    InputLabelProps={{ shrink: true }}
-                    variant="outlined"
-                    size="small"
-                  />
-                </TableCell>
-              ))}
-            </TableRow>
-            <TableRow>
-              <TableCell>Follow Up Date(s)</TableCell>
-              {audits.map((audit, index) => (
-                <TableCell key={index}>
-                  <TextField
-                    type="date"
-                    value={audit.followUpDateFrom}
-                    onChange={(e) => handleInputChange(index, "followUpDateFrom", e.target.value)}
-                    InputLabelProps={{ shrink: true }}
-                    variant="outlined"
-                    size="small"
-                  /> - <TextField
-                    type="date"
-                    value={audit.followUpDateTo}
-                    onChange={(e) => handleInputChange(index, "followUpDateTo", e.target.value)}
-                    InputLabelProps={{ shrink: true }}
-                    variant="outlined"
-                    size="small"
-                  />
-                </TableCell>
-              ))}
-            </TableRow>
-            <TableRow>
-              <TableCell>Management Review Date(s)</TableCell>
-              {audits.map((audit, index) => (
-                <TableCell key={index}>
-                  <TextField
-                    type="date"
-                    value={audit.managementReviewDateFrom}
-                    onChange={(e) => handleInputChange(index, "managementReviewDateFrom", e.target.value)}
-                    InputLabelProps={{ shrink: true }}
-                    variant="outlined"
-                    size="small"
-                  /> - <TextField
-                    type="date"
-                    value={audit.managementReviewDateTo}
-                    onChange={(e) => handleInputChange(index, "managementReviewDateTo", e.target.value)}
-                    InputLabelProps={{ shrink: true }}
-                    variant="outlined"
-                    size="small"
-                  />
-                </TableCell>
-              ))}
-            </TableRow>
-          </TableBody>
-        </Table>
-        <Box className="flex justify-end mt-6">
-          <Button variant="contained" color="primary">
+  return (
+    <div className="p-6 min-h-screen w-full" style={{ backgroundColor: '#F5F7FA' }}>
+      <Typography variant="h5" style={{ color: '#1A73E8', fontWeight: 500, marginBottom: '12px' }}>
+        AUDIT PROGRAMME: {program.name}
+      </Typography>
+      <Typography variant="subtitle1" style={{ color: '#5F6368', marginBottom: '12px' }}>
+        OBJECTIVE(S)
+      </Typography>
+      {program.auditProgramObjective ? (
+        <div style={{ color: '#5F6368', marginBottom: '20px', paddingLeft: '20px' }} dangerouslySetInnerHTML={{ __html: program.auditProgramObjective }} />
+      ) : (
+        <div style={{ color: '#5F6368', marginBottom: '20px', paddingLeft: '20px' }}>test objectives</div>
+      )}
+
+      <Box sx={{ overflowX: 'auto', bgcolor: 'white', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', p: 3 }}>
+        <AuditTable audits={audits} onInputChange={handleInputChange} onOpenAuditDetails={handleOpenAuditDetails} />
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3, pb: 2 }}>
+          <Button
+            variant="contained"
+            style={{ backgroundColor: '#34A853', color: 'white', textTransform: 'none', borderRadius: '8px', padding: '8px 16px' }}
+          >
             Commit this programme
           </Button>
         </Box>
