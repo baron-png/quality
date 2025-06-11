@@ -1,3 +1,4 @@
+"use client";
 import { useState } from "react";
 import { Box, Button, Typography } from "@mui/material";
 import { useRouter } from "next/navigation";
@@ -60,8 +61,8 @@ const AuditProgramDetails: React.FC<AuditProgramDetailsProps> = ({ program, onBa
     setAudits(newAudits);
   };
 
-  const handleOpenAuditDetails = (index: number) => {
-    router.push(`/audit/audit-program/details/${program.id}/audit/${index}`);
+  const handleOpenAuditDetails = (index: number, auditHeader: string) => {
+    router.push(`/audit/audit-program/details/${program.id}/audit/${index}?auditHeader=${encodeURIComponent(auditHeader)}`);
   };
 
   return (

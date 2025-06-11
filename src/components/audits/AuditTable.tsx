@@ -1,6 +1,6 @@
+"use client";
 import { Table, TableHead, TableRow, TableCell, TableBody, TextField, Button } from "@mui/material";
 import AuditRow from "./AuditRow";
-
 
 interface Audit {
   scope: string[];
@@ -19,7 +19,7 @@ interface Audit {
 interface AuditTableProps {
   audits: Audit[];
   onInputChange: (index: number, field: string, value: string) => void;
-  onOpenAuditDetails: (index: number) => void;
+  onOpenAuditDetails: (index: number, auditHeader: string) => void;
 }
 
 const auditHeaders = [
@@ -49,7 +49,6 @@ const AuditTable: React.FC<AuditTableProps> = ({ audits, onInputChange, onOpenAu
         </TableRow>
       </TableHead>
       <TableBody>
-      
         <AuditRow
           label="OBJECTIVE(S), SCOPE, CRITERIA AND METHODS"
           data={audits}
@@ -59,7 +58,7 @@ const AuditTable: React.FC<AuditTableProps> = ({ audits, onInputChange, onOpenAu
                 variant="contained"
                 size="small"
                 style={{ backgroundColor: '#c48210', color: 'white', textTransform: 'none', borderRadius: '8px' }}
-                onClick={() => onOpenAuditDetails(index)}
+                onClick={() => onOpenAuditDetails(index, auditHeaders[index])}
               >
                 Open
               </Button>

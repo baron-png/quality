@@ -25,10 +25,10 @@ export async function createAuditForProgram(
   programId: string,
   audit: {
     scope: string[];
-    specificAuditObjectives: string[];
+    specificAuditObjectives: string[]; // <-- PLURAL
     methods: string[];
     criteria: string[];
-    auditNumber: string; // <-- Add this
+    auditNumber: string;
   },
   token: string
 ) {

@@ -1,9 +1,10 @@
+
 "use client";
 import { createAuditForProgram } from "@/api/auditService";
 import React, { useState } from "react";
 import { Box, Typography, Button } from "@mui/material";
 import MDEditor, { commands } from "@uiw/react-md-editor";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 
 const Page = () => {
@@ -15,26 +16,27 @@ const Page = () => {
   });
 
   const params = useParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const { token } = useAuth();
-  const { id: programId, index } = useParams();
-
+  const { id: programId, index } = params;
+  const auditHeader = searchParams.get("auditHeader") || "Unknown Audit";
 
   const handleInputChange = (field: string, value: string | undefined) => {
     setAuditDetails((prev) => ({ ...prev, [field]: value || "" }));
   };
 
-    const handleSave = async () => {
+  const handleSave = async () => {
     try {
-      await createAuditForProgram(
+          await createAuditForProgram(
         programId as string,
-      {
-        scope: auditDetails.scope ? [auditDetails.scope] : [],
-        specificAuditObjectives: auditDetails.objectives ? [auditDetails.objectives] : [],
-        methods: auditDetails.methods ? [auditDetails.methods] : [],
-        criteria: auditDetails.criteria ? [auditDetails.criteria] : [],
-        auditNumber: index?.toString() ?? "", // <-- Add this line
-      },
+        {
+          scope: auditDetails.scope ? [auditDetails.scope] : [],
+          specificAuditObjectives: auditDetails.objectives ? [auditDetails.objectives] : [], // <-- PLURAL
+          methods: auditDetails.methods ? [auditDetails.methods] : [],
+          criteria: auditDetails.criteria ? [auditDetails.criteria] : [],
+          auditNumber: auditHeader,
+        },
         token
       );
       router.push(`/audit/audit-program/details/${programId}`);
@@ -46,10 +48,6 @@ const Page = () => {
   const handleCancel = () => {
     router.push(`/audit/audit-program/details/${programId}`);
   };
-
-  // ...rest of your component (UI code unchanged)...
-  // (Paste your existing UI code here, using handleSave and handleCancel as above)
-  // For brevity, not repeating the full UI code block
 
   return (
     <Box
@@ -64,7 +62,6 @@ const Page = () => {
         margin: "0 auto",
       }}
     >
-    
       <Box
         sx={{
           background: "linear-gradient(135deg, #FFFFFF 0%, #F9FBFC 100%)",
@@ -76,12 +73,15 @@ const Page = () => {
           gap: "24px",
         }}
       >
-        {/* ...all your MDEditor fields... */}
+        <Typography variant="h5" sx={{ color: "#1A73E8", fontWeight: 600 }}>
+          Audit: {auditHeader}
+        </Typography>
+
         <Box>
           <Typography variant="h6" sx={{ color: "#333333", mb: "12px", fontWeight: 600 }}>
             Audit Objective(s)
-            </Typography>
-            <MDEditor
+          </Typography>
+          <MDEditor
             value={auditDetails.objectives}
             onChange={(value) => handleInputChange("objectives", value)}
             height={160}
@@ -111,50 +111,51 @@ const Page = () => {
             textareaProps={{
               placeholder: "Enter audit objectives...",
             }}
-            />
+          />
         </Box>
 
         <Box>
           <Typography variant="h6" sx={{ color: "#333333", mb: "12px", fontWeight: 600 }}>
             Audit Scope
           </Typography>
-            <MDEditor
-                value={auditDetails.scope}
-                onChange={(value) => handleInputChange("scope", value)}
-                height={160}
-                preview="live"
-                commands={[
-                commands.bold,
-                commands.italic,
-                commands.strike,
-                commands.underline,
-                commands.header,
-                commands.header2,
-                commands.quote,
-                commands.code,
-                commands.codeBlock,
-                commands.unorderedListCommand,
-                commands.orderedListCommand,
-                commands.link,
-                commands.image,
-                commands.hr,
-                commands.table,
-                ].filter(Boolean)}
-                style={{
-                borderRadius: "10px",
-                border: "1px solid #CFD8DC",
-                overflow: "hidden",
-                }}
-                textareaProps={{
-                placeholder: "Enter audit scope...",
-                }}
-            />
+          <MDEditor
+            value={auditDetails.scope}
+            onChange={(value) => handleInputChange("scope", value)}
+            height={160}
+            preview="live"
+            commands={[
+              commands.bold,
+              commands.italic,
+              commands.strike,
+              commands.underline,
+              commands.header,
+              commands.header2,
+              commands.quote,
+              commands.code,
+              commands.codeBlock,
+              commands.unorderedListCommand,
+              commands.orderedListCommand,
+              commands.link,
+              commands.image,
+              commands.hr,
+              commands.table,
+            ].filter(Boolean)}
+            style={{
+              borderRadius: "10px",
+              border: "1px solid #CFD8DC",
+              overflow: "hidden",
+            }}
+            textareaProps={{
+              placeholder: "Enter audit scope...",
+            }}
+          />
         </Box>
+
         <Box>
           <Typography variant="h6" sx={{ color: "#333333", mb: "12px", fontWeight: 600 }}>
             Audit Criteria
-            </Typography>
-            <MDEditor
+          </Typography>
+          <MDEditor
             value={auditDetails.criteria}
             onChange={(value) => handleInputChange("criteria", value)}
             height={160}
@@ -184,48 +185,46 @@ const Page = () => {
             textareaProps={{
               placeholder: "Enter audit criteria...",
             }}
-            />
+          />
         </Box>
+
         <Box>
           <Typography variant="h6" sx={{ color: "#333333", mb: "12px", fontWeight: 600 }}>
             Audit Methods
           </Typography>
-            <MDEditor
-                value={auditDetails.methods}
-                onChange={(value) => handleInputChange("methods", value)}
-                height={160}
-                preview="live"
-                commands={[
-                commands.bold,
-                commands.italic,
-                commands.strike,
-                commands.underline,
-                commands.header,
-                commands.header2,
-                commands.quote,
-                commands.code,
-                commands.codeBlock,
-                commands.unorderedListCommand,
-                commands.orderedListCommand,
-                commands.link,
-                commands.image,
-                commands.hr,
-                commands.table,
-                ].filter(Boolean)}
-                style={{
-                borderRadius: "10px",
-                border: "1px solid #CFD8DC",
-                overflow: "hidden",
-                }}
-                textareaProps={{
-                placeholder: "Enter audit methods...",
-                }}
-            />
+          <MDEditor
+            value={auditDetails.methods}
+            onChange={(value) => handleInputChange("methods", value)}
+            height={160}
+            preview="live"
+            commands={[
+              commands.bold,
+              commands.italic,
+              commands.strike,
+              commands.underline,
+              commands.header,
+              commands.header2,
+              commands.quote,
+              commands.code,
+              commands.codeBlock,
+              commands.unorderedListCommand,
+              commands.orderedListCommand,
+              commands.link,
+              commands.image,
+              commands.hr,
+              commands.table,
+            ].filter(Boolean)}
+            style={{
+              borderRadius: "10px",
+              border: "1px solid #CFD8DC",
+              overflow: "hidden",
+            }}
+            textareaProps={{
+              placeholder: "Enter audit methods...",
+            }}
+          />
         </Box>
 
-
-
-        {/* ...repeat for Scope, Criteria, Methods... */}
         <Box sx={{ display: "flex", justifyContent: "flex-end", gap: "16px", mt: "24px" }}>
           <Button
             variant="outlined"
