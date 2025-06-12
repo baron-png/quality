@@ -32,7 +32,7 @@ export async function createAuditForProgram(
   },
   token: string
 ) {
-  const response = await fetch(`http://localhost:5004/api/audit-programs/${programId}/audits`, {
+  const response = await fetch(`http://localhost:5004/api/audits/${programId}/audits`,  {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -58,6 +58,54 @@ export async function getAuditProgramById(id: string, token: string) {
   return response.json();
 }
 
+
+export async function saveAuditDates(auditId: string, dates: { auditDates?: { startDate: string | null; endDate: string | null }; teamLeaderAppointment?: { appointmentDate: string }; teamMemberAppointments?: { appointmentDate: string }[]; followUpDates?: { startDate: string | null; endDate: string | null }; managementReviewDates?: { startDate: string | null; endDate: string | null } }, token: string) {
+  const response = await fetch(`http://localhost:5004/api/audits/${auditId}/dates`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(dates),
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to save audit dates");
+  }
+  return response.json();
+}
+
+
+
+export async function saveTeamAppointments(auditId: string, appointments: { teamLeader?: { appointmentDate: string; teamLeaderId: string }; teamMembers?: { appointmentDate: string; teamMemberIds: string[] } }, token: string) {
+  const response = await fetch(`http://localhost:5004/api/audits/${auditId}/team-appointments`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(appointments),
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to save team appointments");
+  }
+  return response.json();
+}
+
+export async function submitAuditProgram(programId: string, token: string) {
+  const response = await fetch(`http://localhost:5004/api/audit-programs/${programId}/submit`, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to submit audit program");
+  }
+  return response.json();
+}
 export async function updateAuditProgram(id: string, updatedProgram: any, token: string) {
   const response = await fetch(`http://localhost:5004/api/audit-programs/${id}`, {
     method: "PUT",
@@ -158,7 +206,32 @@ export async function createAuditProgram(newProgram: any, token: string) {
     }),
   });
   if (!programRes.ok) throw new Error("Failed to create audit program");
-  return await programRes.json();
+  const createdProgram = await programRes.json();
+
+  // Create placeholder audits for all auditHeaders
+  const auditHeaders = [
+    "1ST INTERNAL AUDIT",
+    "1ST SURVEILLANCE AUDIT",
+    "2ND INTERNAL AUDIT",
+    "2ND SURVEILLANCE AUDIT",
+    "3RD INTERNAL AUDIT",
+    "RE-CERTIFICATION AUDIT",
+  ];
+  for (const auditNumber of auditHeaders) {
+    await createAuditForProgram(
+      createdProgram.id,
+      {
+        auditNumber,
+        scope: [],
+        specificAuditObjectives: [],
+        methods: [],
+        criteria: [],
+      },
+      token
+    );
+  }
+
+  return createdProgram;
 }
 
 export async function createAuditProgramWithAudits(newProgram: any, token: string) {
@@ -200,4 +273,35 @@ export async function createAuditProgramWithAudits(newProgram: any, token: strin
     if (!auditRes.ok) throw new Error("Failed to create audit");
   }
   return true;
+}
+
+export async function getAuditByProgramAndNumber(programId: string, auditNumber: string, token: string) {
+  const response = await fetch(`http://localhost:5004/api/audit-programs/${programId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to fetch audit");
+  }
+  const program = await response.json();
+  const audit = program.audits.find((a: any) => a.auditNumber === auditNumber);
+  return audit || null;
+}
+
+export async function updateAudit(auditId: string, data: any, token: string) {
+  const response = await fetch(`http://localhost:5004/api/audits/${auditId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to update audit");
+  }
+  return response.json();
 }

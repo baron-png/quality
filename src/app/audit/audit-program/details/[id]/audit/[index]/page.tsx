@@ -1,53 +1,103 @@
-
 "use client";
-import { createAuditForProgram } from "@/api/auditService";
-import React, { useState } from "react";
-import { Box, Typography, Button } from "@mui/material";
-import MDEditor, { commands } from "@uiw/react-md-editor";
+
+import { useState, useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
+import { Box, Typography, Button, Snackbar, Alert } from "@mui/material";
+import MDEditor, { commands } from "@uiw/react-md-editor";
+import { createAuditForProgram, getAuditByProgramAndNumber, updateAudit } from "@/api/auditService";
 
-const Page = () => {
+const AuditDetailsPage = () => {
   const [auditDetails, setAuditDetails] = useState({
+    id: null as string | null,
+    auditNumber: "",
     objectives: "",
     scope: "",
     criteria: "",
     methods: "",
   });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
   const { token } = useAuth();
-  const { id: programId, index } = params;
+  const { id: programId } = params;
   const auditHeader = searchParams.get("auditHeader") || "Unknown Audit";
+
+  useEffect(() => {
+    if (!token || !programId || !auditHeader) {
+      setLoading(false);
+      return;
+    }
+
+    const fetchAudit = async () => {
+      try {
+        const existingAudit = await getAuditByProgramAndNumber(programId as string, auditHeader, token);
+        if (existingAudit) {
+          setAuditDetails({
+            id: existingAudit.id,
+            auditNumber: existingAudit.auditNumber,
+            objectives: existingAudit.specificAuditObjective?.join("\n") || "",
+            scope: existingAudit.scope?.join("\n") || "",
+            criteria: existingAudit.criteria?.join("\n") || "",
+            methods: existingAudit.methods?.join("\n") || "",
+          });
+        } else {
+          setAuditDetails((prev) => ({ ...prev, auditNumber: auditHeader }));
+        }
+      } catch (err: any) {
+        setError(err.message || "Failed to fetch audit details");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAudit();
+  }, [token, programId, auditHeader]);
 
   const handleInputChange = (field: string, value: string | undefined) => {
     setAuditDetails((prev) => ({ ...prev, [field]: value || "" }));
   };
 
   const handleSave = async () => {
+    if (!auditDetails.auditNumber || !auditDetails.scope.trim() || !auditDetails.objectives.trim() ||
+        !auditDetails.criteria.trim() || !auditDetails.methods.trim()) {
+      setError("Please fill in all fields: scope, objectives, criteria, and methods");
+      return;
+    }
+
     try {
-          await createAuditForProgram(
-        programId as string,
-        {
-          scope: auditDetails.scope ? [auditDetails.scope] : [],
-          specificAuditObjectives: auditDetails.objectives ? [auditDetails.objectives] : [], // <-- PLURAL
-          methods: auditDetails.methods ? [auditDetails.methods] : [],
-          criteria: auditDetails.criteria ? [auditDetails.criteria] : [],
-          auditNumber: auditHeader,
-        },
-        token
-      );
-      router.push(`/audit/audit-program/details/${programId}`);
-    } catch (error: any) {
-      alert(error.message || "Failed to save audit details");
+      const payload = {
+        auditNumber: auditDetails.auditNumber,
+        scope: auditDetails.scope.split("\n").filter(s => s.trim()),
+        specificAuditObjectives: auditDetails.objectives.split("\n").filter(o => o.trim()),
+        methods: auditDetails.methods.split("\n").filter(m => m.trim()),
+        criteria: auditDetails.criteria.split("\n").filter(c => c.trim()),
+      };
+
+      if (auditDetails.id) {
+        // Update existing audit
+        await updateAudit(auditDetails.id, payload, token);
+        setSuccess("Audit updated successfully");
+      } else {
+        // Create new audit
+        await createAuditForProgram(programId as string, payload, token);
+        setSuccess("Audit created successfully");
+      }
+      setTimeout(() => router.push(`/audit/audit-program/details/${programId}`), 2000);
+    } catch (err: any) {
+      setError(err.message || "Failed to save audit details");
     }
   };
 
   const handleCancel = () => {
     router.push(`/audit/audit-program/details/${programId}`);
   };
+
+  if (loading) return <Box sx={{ p: 4, textAlign: "center" }}>Loading...</Box>;
 
   return (
     <Box
@@ -74,7 +124,7 @@ const Page = () => {
         }}
       >
         <Typography variant="h5" sx={{ color: "#1A73E8", fontWeight: 600 }}>
-          Audit: {auditHeader}
+          {auditDetails.id ? "Edit Audit" : "Create Audit"}: {auditHeader}
         </Typography>
 
         <Box>
@@ -254,8 +304,15 @@ const Page = () => {
           </Button>
         </Box>
       </Box>
+
+      <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError(null)}>
+        <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>
+      </Snackbar>
+      <Snackbar open={!!success} autoHideDuration={6000} onClose={() => setSuccess(null)}>
+        <Alert severity="success" onClose={() => setSuccess(null)}>{success}</Alert>
+      </Snackbar>
     </Box>
   );
 };
 
-export default Page;
+export default AuditDetailsPage;

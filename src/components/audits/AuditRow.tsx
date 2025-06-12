@@ -1,3 +1,4 @@
+import React from "react";
 import { TableRow, TableCell } from "@mui/material";
 
 interface Audit {
@@ -24,7 +25,12 @@ const AuditRow = <T,>({ label, data, renderCell }: AuditRowProps<T>) => {
   return (
     <TableRow>
       <TableCell>{label}</TableCell>
-      {data.map((item, index) => renderCell(item, index))}
+      {data.map((item, index) => (
+        // Add a key prop here
+        <React.Fragment key={index}>
+          {renderCell(item, index)}
+        </React.Fragment>
+      ))}
       <TableCell />
     </TableRow>
   );
