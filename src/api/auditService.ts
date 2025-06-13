@@ -2,7 +2,7 @@
 export async function fetchAuditPrograms(token: string, role: string) {
   try {
     const response = await fetch(`http://localhost:5004/api/audit-programs`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
     });
     if (!response.ok) {
       let errorMsg = "Failed to fetch audit programs";
@@ -32,12 +32,12 @@ export async function createAuditForProgram(
   },
   token: string
 ) {
-  const response = await fetch(`http://localhost:5004/api/audits/${programId}/audits`,  {
+  const response = await fetch(`http://localhost:5004/api/audits/${programId}/audits`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
     },
+    credentials: 'include',
     body: JSON.stringify(audit),
   });
   if (!response.ok) {
@@ -49,7 +49,7 @@ export async function createAuditForProgram(
 
 export async function getAuditProgramById(id: string, token: string) {
   const response = await fetch(`http://localhost:5004/api/audit-programs/${id}`, {
-    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include',
   });
   if (!response.ok) {
     const errorData = await response.json();
@@ -64,8 +64,8 @@ export async function saveAuditDates(auditId: string, dates: { auditDates?: { st
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
     },
+    credentials: 'include',
     body: JSON.stringify(dates),
   });
   if (!response.ok) {
@@ -82,8 +82,8 @@ export async function saveTeamAppointments(auditId: string, appointments: { team
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
     },
+    credentials: 'include',
     body: JSON.stringify(appointments),
   });
   if (!response.ok) {
@@ -96,9 +96,7 @@ export async function saveTeamAppointments(auditId: string, appointments: { team
 export async function submitAuditProgram(programId: string, token: string) {
   const response = await fetch(`http://localhost:5004/api/audit-programs/${programId}/submit`, {
     method: "PUT",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    credentials: 'include',
   });
   if (!response.ok) {
     const errorData = await response.json();
@@ -111,8 +109,8 @@ export async function updateAuditProgram(id: string, updatedProgram: any, token:
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
     },
+    credentials: 'include',
     body: JSON.stringify({
       name: updatedProgram.name,
       auditProgramObjective: updatedProgram.auditProgramObjective,
@@ -130,10 +128,7 @@ export async function updateAuditProgram(id: string, updatedProgram: any, token:
 export async function submitForApprovalAuditProgram(id: string, token: string) {
   const response = await fetch(`http://localhost:5004/api/audit-programs/${id}/submit`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
+    credentials: 'include',
   });
   if (!response.ok) {
     const errorData = await response.json();
@@ -145,10 +140,7 @@ export async function submitForApprovalAuditProgram(id: string, token: string) {
 export async function approveAuditProgram(id: string, token: string) {
   const response = await fetch(`http://localhost:5004/api/audit-programs/${id}/approve`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
+    credentials: 'include',
   });
   if (!response.ok) {
     const errorData = await response.json();
@@ -160,10 +152,7 @@ export async function approveAuditProgram(id: string, token: string) {
 export async function rejectAuditProgram(id: string, token: string) {
   const response = await fetch(`http://localhost:5004/api/audit-programs/${id}/reject`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
+    credentials: 'include',
   });
   if (!response.ok) {
     const errorData = await response.json();
@@ -175,10 +164,7 @@ export async function rejectAuditProgram(id: string, token: string) {
 export async function archiveAuditProgram(id: string, token: string) {
   const response = await fetch(`http://localhost:5004/api/audit-programs/${id}/archive`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
+    credentials: 'include',
   });
   if (!response.ok) {
     const errorData = await response.json();
@@ -192,8 +178,8 @@ export async function createAuditProgram(newProgram: any, token: string) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
     },
+    credentials: 'include',
     body: JSON.stringify({
       name: newProgram.name,
       auditProgramObjective: newProgram.auditProgramObjective,
@@ -239,8 +225,8 @@ export async function createAuditProgramWithAudits(newProgram: any, token: strin
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
     },
+    credentials: 'include',
     body: JSON.stringify({
       name: newProgram.name,
       auditProgramObjective: newProgram.auditProgramObjective,
@@ -265,8 +251,8 @@ export async function createAuditProgramWithAudits(newProgram: any, token: strin
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: 'include',
         body: JSON.stringify(auditData),
       }
     );
@@ -277,9 +263,7 @@ export async function createAuditProgramWithAudits(newProgram: any, token: strin
 
 export async function getAuditByProgramAndNumber(programId: string, auditNumber: string, token: string) {
   const response = await fetch(`http://localhost:5004/api/audit-programs/${programId}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    credentials: 'include',
   });
   if (!response.ok) {
     const errorData = await response.json();
@@ -295,8 +279,8 @@ export async function updateAudit(auditId: string, data: any, token: string) {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
     },
+    credentials: 'include',
     body: JSON.stringify(data),
   });
   if (!response.ok) {
