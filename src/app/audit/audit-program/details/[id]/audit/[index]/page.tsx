@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
-import { Box, Typography, Button, Snackbar, Alert } from "@mui/material";
+import { Box, Typography, Button, Snackbar, Alert, CircularProgress, Chip } from "@mui/material";
 import MDEditor, { commands } from "@uiw/react-md-editor";
 import { createAuditForProgram, getAuditByProgramAndNumber, updateAudit } from "@/api/auditService";
 
@@ -17,6 +17,7 @@ const AuditDetailsPage = () => {
     methods: "",
   });
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -65,10 +66,11 @@ const AuditDetailsPage = () => {
   const handleSave = async () => {
     if (!auditDetails.auditNumber || !auditDetails.scope.trim() || !auditDetails.objectives.trim() ||
         !auditDetails.criteria.trim() || !auditDetails.methods.trim()) {
-      setError("Please fill in all fields: scope, objectives, criteria, and methods");
+      setError("Please fill in all required fields: scope, objectives, criteria, and methods");
       return;
     }
 
+    setSaving(true);
     try {
       const payload = {
         auditNumber: auditDetails.auditNumber,
@@ -79,17 +81,20 @@ const AuditDetailsPage = () => {
       };
 
       if (auditDetails.id) {
-        // Update existing audit
         await updateAudit(auditDetails.id, payload, token);
         setSuccess("Audit updated successfully");
       } else {
-        // Create new audit
         await createAuditForProgram(programId as string, payload, token);
         setSuccess("Audit created successfully");
       }
-      setTimeout(() => router.push(`/audit/audit-program/details/${programId}`), 2000);
+
+      setTimeout(() => {
+        router.push(`/audit/audit-program/details/${programId}`);
+      }, 1500);
     } catch (err: any) {
       setError(err.message || "Failed to save audit details");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -97,7 +102,19 @@ const AuditDetailsPage = () => {
     router.push(`/audit/audit-program/details/${programId}`);
   };
 
-  if (loading) return <Box sx={{ p: 4, textAlign: "center" }}>Loading...</Box>;
+  if (loading) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '100vh',
+        background: "linear-gradient(135deg, #E3F2FD 0%, #F5F7FA 100%)"
+      }}>
+        <CircularProgress size={40} sx={{ color: "#1A73E8" }} />
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -114,17 +131,41 @@ const AuditDetailsPage = () => {
     >
       <Box
         sx={{
-          background: "linear-gradient(135deg, #FFFFFF 0%, #F9FBFC 100%)",
+          background: "white",
           borderRadius: "16px",
           boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
           padding: "28px",
           display: "flex",
           flexDirection: "column",
           gap: "24px",
+          transition: "all 0.3s ease-in-out",
+          "&:hover": {
+            boxShadow: "0 12px 32px rgba(0, 0, 0, 0.15)",
+          }
         }}
       >
-        <Typography variant="h5" sx={{ color: "#1A73E8", fontWeight: 600 }}>
+        <Typography 
+          variant="h5" 
+          sx={{ 
+            color: "#1A73E8", 
+            fontWeight: 600,
+            display: "flex",
+            alignItems: "center",
+            gap: 2
+          }}
+        >
           {auditDetails.id ? "Edit Audit" : "Create Audit"}: {auditHeader}
+          {auditDetails.id && (
+            <Chip 
+              label="Saved" 
+              size="small" 
+              sx={{ 
+                bgcolor: "#E8F0FE", 
+                color: "#1A73E8",
+                fontWeight: 500
+              }} 
+            />
+          )}
         </Typography>
 
         <Box>
@@ -139,10 +180,6 @@ const AuditDetailsPage = () => {
             commands={[
               commands.bold,
               commands.italic,
-              commands.strike,
-              commands.underline,
-              commands.header,
-              commands.header2,
               commands.quote,
               commands.code,
               commands.codeBlock,
@@ -176,10 +213,6 @@ const AuditDetailsPage = () => {
             commands={[
               commands.bold,
               commands.italic,
-              commands.strike,
-              commands.underline,
-              commands.header,
-              commands.header2,
               commands.quote,
               commands.code,
               commands.codeBlock,
@@ -213,10 +246,6 @@ const AuditDetailsPage = () => {
             commands={[
               commands.bold,
               commands.italic,
-              commands.strike,
-              commands.underline,
-              commands.header,
-              commands.header2,
               commands.quote,
               commands.code,
               commands.codeBlock,
@@ -250,10 +279,6 @@ const AuditDetailsPage = () => {
             commands={[
               commands.bold,
               commands.italic,
-              commands.strike,
-              commands.underline,
-              commands.header,
-              commands.header2,
               commands.quote,
               commands.code,
               commands.codeBlock,
@@ -275,16 +300,28 @@ const AuditDetailsPage = () => {
           />
         </Box>
 
-        <Box sx={{ display: "flex", justifyContent: "flex-end", gap: "16px", mt: "24px" }}>
+        <Box sx={{ 
+          display: "flex", 
+          justifyContent: "flex-end", 
+          gap: "16px", 
+          mt: "24px",
+          position: "relative"
+        }}>
           <Button
             variant="outlined"
             onClick={handleCancel}
+            disabled={saving}
             sx={{
-              color: "#D32F2F",
-              borderColor: "#D32F2F",
+              color: "#5F6368",
+              borderColor: "#5F6368",
               padding: "10px 24px",
               borderRadius: "10px",
-              "&:hover": { borderColor: "#B71C1C", color: "#B71C1C" },
+              "&:hover": { 
+                borderColor: "#3C4043", 
+                color: "#3C4043",
+                backgroundColor: "rgba(95, 99, 104, 0.04)"
+              },
+              transition: "all 0.2s ease-in-out"
             }}
           >
             Cancel
@@ -292,24 +329,68 @@ const AuditDetailsPage = () => {
           <Button
             variant="contained"
             onClick={handleSave}
+            disabled={saving}
             sx={{
               background: "linear-gradient(90deg, #1976D2 0%, #42A5F5 100%)",
               color: "#FFFFFF",
               padding: "10px 24px",
               borderRadius: "10px",
-              "&:hover": { background: "linear-gradient(90deg, #1565C0 0%, #2196F3 100%)" },
+              minWidth: 120,
+              "&:hover": { 
+                background: "linear-gradient(90deg, #1565C0 0%, #2196F3 100%)",
+                transform: "translateY(-1px)",
+                boxShadow: "0 4px 12px rgba(25, 118, 210, 0.2)"
+              },
+              "&:disabled": {
+                background: "#E0E0E0",
+                color: "#9E9E9E"
+              },
+              transition: "all 0.2s ease-in-out"
             }}
           >
-            Save
+            {saving ? (
+              <CircularProgress size={24} sx={{ color: "white" }} />
+            ) : (
+              "Save"
+            )}
           </Button>
         </Box>
       </Box>
 
-      <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError(null)}>
-        <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>
+      <Snackbar 
+        open={!!error} 
+        autoHideDuration={6000} 
+        onClose={() => setError(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert 
+          severity="error" 
+          onClose={() => setError(null)}
+          sx={{
+            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+            borderRadius: "8px"
+          }}
+        >
+          {error}
+        </Alert>
       </Snackbar>
-      <Snackbar open={!!success} autoHideDuration={6000} onClose={() => setSuccess(null)}>
-        <Alert severity="success" onClose={() => setSuccess(null)}>{success}</Alert>
+
+      <Snackbar 
+        open={!!success} 
+        autoHideDuration={2000} 
+        onClose={() => setSuccess(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert 
+          severity="success" 
+          onClose={() => setSuccess(null)}
+          sx={{
+            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+            borderRadius: "8px"
+          }}
+        >
+          {success}
+        </Alert>
       </Snackbar>
     </Box>
   );

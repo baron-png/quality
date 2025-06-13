@@ -1,39 +1,46 @@
+import { memo } from "react";
 import React from "react";
 import { TableRow, TableCell } from "@mui/material";
-
-interface Audit {
-  scope: string[];
-  specificAuditObjectives: string[];
-  methods: string[];
-  auditDateFrom: string;
-  auditDateTo: string;
-  teamLeaderDate: string;
-  teamMembersDate: string;
-  followUpDateFrom: string;
-  followUpDateTo: string;
-  managementReviewDateFrom: string;
-  managementReviewDateTo: string;
-}
+import { Audit } from "@/types/audit";
 
 interface AuditRowProps<T> {
   label: string;
   data: T[];
-  renderCell: (item: T, index: number) => JSX.Element;
+  renderCell: (item: T, index: number) => React.ReactElement;
 }
 
-const AuditRow = <T,>({ label, data, renderCell }: AuditRowProps<T>) => {
+const AuditRow = memo(<T extends Audit>({ 
+  label, 
+  data, 
+  renderCell 
+}: AuditRowProps<T>) => {
   return (
     <TableRow>
-      <TableCell>{label}</TableCell>
+      <TableCell 
+        sx={{ 
+          bgcolor: "#F5F7FA", 
+          fontWeight: 600, 
+          color: "#1A73E8",
+          minWidth: 200 
+        }}
+      >
+        {label}
+      </TableCell>
       {data.map((item, index) => (
-        // Add a key prop here
-        <React.Fragment key={index}>
+        <TableCell 
+          key={item.id || index}
+          sx={{ 
+            borderBottom: "1px solid #E0E0E0",
+            minWidth: 200 
+          }}
+        >
           {renderCell(item, index)}
-        </React.Fragment>
+        </TableCell>
       ))}
-      <TableCell />
     </TableRow>
   );
-};
+});
+
+AuditRow.displayName = 'AuditRow';
 
 export default AuditRow;
