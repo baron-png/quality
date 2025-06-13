@@ -28,15 +28,15 @@ const AuditDetailsPage = () => {
   const { id: programId } = params;
   const auditHeader = searchParams.get("auditHeader") || "Unknown Audit";
 
-  useEffect(() => {
-    if (!token || !programId || !auditHeader) {
+   useEffect(() => {
+    if (!programId || !auditHeader) {
       setLoading(false);
       return;
     }
-
+  
     const fetchAudit = async () => {
       try {
-        const existingAudit = await getAuditByProgramAndNumber(programId as string, auditHeader, token);
+        const existingAudit = await getAuditByProgramAndNumber(programId as string, auditHeader);
         if (existingAudit) {
           setAuditDetails({
             id: existingAudit.id,
@@ -55,9 +55,9 @@ const AuditDetailsPage = () => {
         setLoading(false);
       }
     };
-
+  
     fetchAudit();
-  }, [token, programId, auditHeader]);
+  }, [programId, auditHeader]);
 
   const handleInputChange = (field: string, value: string | undefined) => {
     setAuditDetails((prev) => ({ ...prev, [field]: value || "" }));
@@ -81,10 +81,10 @@ const AuditDetailsPage = () => {
       };
 
       if (auditDetails.id) {
-        await updateAudit(auditDetails.id, payload, token);
+        await updateAudit(auditDetails.id, payload);
         setSuccess("Audit updated successfully");
       } else {
-        await createAuditForProgram(programId as string, payload, token);
+        await createAuditForProgram(programId as string, payload);
         setSuccess("Audit created successfully");
       }
 

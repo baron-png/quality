@@ -12,7 +12,7 @@ import { AuditProgram, ActionStatus, User } from "@/types/audit";
 interface ActionButtonsProps {
   program: AuditProgram;
   user: User;
-  token: string;
+
   actionStatus: ActionStatus;
   setActionStatus: React.Dispatch<React.SetStateAction<ActionStatus>>;
   setAuditPrograms: React.Dispatch<React.SetStateAction<AuditProgram[]>>;
@@ -21,7 +21,7 @@ interface ActionButtonsProps {
 export default function ActionButtons({
   program,
   user,
-  token,
+
   actionStatus,
   setActionStatus,
   setAuditPrograms,
@@ -38,8 +38,8 @@ export default function ActionButtons({
       [program.id]: { loading: true, error: null, action: "submit" },
     }));
     try {
-      await submitForApprovalAuditProgram(program.id, token);
-      const refreshed = await fetchAuditPrograms(token, user.primaryRole);
+      await submitForApprovalAuditProgram(program.id);
+         const refreshed = await fetchAuditPrograms();
       setAuditPrograms(refreshed);
       setActionStatus((prev) => ({
         ...prev,
@@ -60,8 +60,8 @@ export default function ActionButtons({
       [program.id]: { loading: true, error: null, action: "approve" },
     }));
     try {
-      await approveAuditProgram(program.id, token);
-      const refreshed = await fetchAuditPrograms(token, user.primaryRole);
+      await approveAuditProgram(program.id);
+           const refreshed = await fetchAuditPrograms();
       setAuditPrograms(refreshed);
       setActionStatus((prev) => ({
         ...prev,
@@ -82,8 +82,8 @@ export default function ActionButtons({
       [program.id]: { loading: true, error: null, action: "reject" },
     }));
     try {
-      await rejectAuditProgram(program.id, token);
-      const refreshed = await fetchAuditPrograms(token, user.primaryRole);
+      await rejectAuditProgram(program.id);
+            const refreshed = await fetchAuditPrograms();
       setAuditPrograms(refreshed);
       setActionStatus((prev) => ({
         ...prev,
@@ -104,8 +104,8 @@ export default function ActionButtons({
       [program.id]: { loading: true, error: null, action: "archive" },
     }));
     try {
-      await archiveAuditProgram(program.id, token);
-      const refreshed = await fetchAuditPrograms(token, user.primaryRole);
+      await archiveAuditProgram(program.id);
+            const refreshed = await fetchAuditPrograms();
       setAuditPrograms(refreshed);
       setActionStatus((prev) => ({
         ...prev,

@@ -49,29 +49,19 @@ export const AuditProgramProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [state, dispatch] = useReducer(auditProgramReducer, initialState);
   const { token } = useAuth();
 
-  const fetchProgram = useCallback(async (programId: string) => {
-    if (!token) return;
-
+    const fetchProgram = useCallback(async (programId: string) => {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
-      const rawProgram = await getAuditProgramById(programId, token);
-      
-      // Transform and sort the program data
-      const transformedProgram: AuditProgram = {
-        ...rawProgram,
-        audits: sortAuditsByNumber(rawProgram.audits.map(transformAuditFromBackend)),
-      };
-
-      dispatch({ type: 'SET_PROGRAM', payload: transformedProgram });
+      const rawProgram = await getAuditProgramById(programId);
+      // Optionally transform the program here if needed
+      // const program = transformAuditFromBackend(rawProgram);
+      dispatch({ type: 'SET_PROGRAM', payload: rawProgram }); // or payload: program
     } catch (error: any) {
-      dispatch({ 
-        type: 'SET_ERROR', 
-        payload: error.message || 'Failed to fetch program' 
-      });
+      dispatch({ type: 'SET_ERROR', payload: error.message || 'Failed to fetch program' });
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
-  }, [token]);
+  }, []);
 
   const updateAudit = useCallback((index: number, data: Partial<Audit>) => {
     dispatch({ type: 'UPDATE_AUDIT', payload: { index, data } });
@@ -94,7 +84,7 @@ export const AuditProgramProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const payload = createSaveDatesPayload(audit);
 
       // Save to backend
-      await saveAuditDates(auditId, payload, token);
+      await saveAuditDates(auditId, payload);
       
       // Refresh the program to get the latest data
       await fetchProgram(state.program.id);
@@ -115,7 +105,7 @@ export const AuditProgramProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
-      await submitAuditProgram(programId, token);
+      await submitAuditProgram(programId);
       dispatch({ type: 'SET_SUCCESS', payload: 'Program committed successfully' });
       await fetchProgram(programId);
     } catch (error: any) {

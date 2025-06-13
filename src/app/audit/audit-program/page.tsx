@@ -13,20 +13,18 @@ import { AuditProgram, ActionStatus } from "@/types/audit";
 
 export default function AuditProgramsPage() {
   const router = useRouter();
-  const { token, user } = useAuth();
+  const { user } = useAuth();
   const searchParams = useSearchParams();
   const initialTab = searchParams.get("tab") || "draft";
   const [tab, setTab] = useState<string>(initialTab);
   const [auditPrograms, setAuditPrograms] = useState<AuditProgram[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [actionStatus, setActionStatus] = useState<ActionStatus>({});
-
-  useEffect(() => {
-    if (!user || !token) return;
+useEffect(() => {
+    if (!user) return;
     const fetchPrograms = async () => {
-      setLoading(true);
       try {
-        const programs = await fetchAuditPrograms(token, user.primaryRole);
+        const programs = await fetchAuditPrograms();
         setAuditPrograms(programs);
       } catch (error: any) {
         setAuditPrograms([]);
@@ -36,7 +34,7 @@ export default function AuditProgramsPage() {
       }
     };
     fetchPrograms();
-  }, [token, user]);
+  }, [user]);
 
   const handleCreateProgram = () => {
     router.push("/audit/audit-program/create");
@@ -106,7 +104,6 @@ export default function AuditProgramsPage() {
               key={program.id}
               program={program}
               user={user}
-              token={token}
               actionStatus={actionStatus}
               setActionStatus={setActionStatus}
               setAuditPrograms={setAuditPrograms}

@@ -9,7 +9,7 @@ export default function AuditProgramCreatePage() {
   const router = useRouter();
 
    const handleSubmit = async (data: any): Promise<string> => {
-    const program = await createAuditProgram(data, token);
+    const program = await createAuditProgram(data);
     // program should be the created program object, or at least contain the id
     router.push(`/audit/audit-program/details/${program.id}`); // Use the id, not the whole object!
     return program.id;

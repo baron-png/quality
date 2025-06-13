@@ -419,7 +419,7 @@ const AuditTable: React.FC<AuditTableProps> = ({
         } : undefined,
       };
 
-      await saveAuditDates(audit.id, payload, token);
+      await saveAuditDates(audit.id, payload);
       setSuccess("Dates saved successfully");
       await refreshAudits();
     } catch (err: any) {

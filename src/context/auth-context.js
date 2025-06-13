@@ -11,58 +11,47 @@ import { CircularProgress } from "@mui/material";
 
 const AuthContext = createContext();
 
-// Create axios instance with proper configuration
 export const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api",
-  withCredentials: true, // Enable sending cookies
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
   }
 });
 
-// Add request interceptor to include access token in cookies
+// Request interceptor: attach access token from cookie
 api.interceptors.request.use((config) => {
-  // Get access token from cookie
   const accessToken = document.cookie
     .split('; ')
     .find(row => row.startsWith('accessToken='))
     ?.split('=')[1];
 
   if (accessToken) {
-    // Set the access token in the cookie for the request
     document.cookie = `accessToken=${accessToken}; path=/; SameSite=Strict`;
   }
   return config;
-}, (error) => {
-  return Promise.reject(error);
-});
+}, (error) => Promise.reject(error));
 
-// Add response interceptor to handle token refresh
+// Response interceptor: handle token refresh and logout
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // If error is 401 and we haven't tried to refresh yet
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-
       try {
-        // Attempt to refresh the token
         const response = await api.post('/refresh-token', {}, { withCredentials: true });
         const { accessToken } = response.data;
-
-        // Set the new access token in a cookie
         document.cookie = `accessToken=${accessToken}; path=/; SameSite=Strict`;
-
-        // Retry the original request
         return api(originalRequest);
       } catch (refreshError) {
-        // If refresh fails, logout
-        const authContext = useContext(AuthContext);
-        if (authContext?.logout) {
-          authContext.logout();
+        // Manual logout: clear cookies and redirect
+        document.cookie = "accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        document.cookie = "refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        if (typeof window !== "undefined") {
+          window.location.href = "/auth/sign-in";
         }
         return Promise.reject(refreshError);
       }
@@ -94,10 +83,7 @@ export const AuthProvider = ({ children }) => {
 
   const checkUserLoggedIn = async () => {
     try {
-      const response = await api.get("/me", {
-        withCredentials: true
-      });
-      
+      const response = await api.get("/me", { withCredentials: true });
       if (response.data) {
         const primaryRole = response.data.roles?.[0]?.name || "default";
         setUser({ ...response.data, primaryRole });
@@ -105,10 +91,8 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error("Auth check failed:", error);
       if (error.response?.status === 401) {
-        // Only logout if it's a true authentication error
         logout();
       } else {
-        // For other errors, just show the error but don't logout
         toast.error(error.response?.data?.error?.message || "Failed to verify session");
       }
     } finally {
@@ -123,10 +107,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     setLoading(true);
     try {
-      const response = await api.post("/login", 
-        { email, password },
-        { withCredentials: true }
-      );
+      const response = await api.post("/login", { email, password }, { withCredentials: true });
 
       if (response.data.requiresVerification) {
         setOtpEmail(email);
@@ -135,14 +116,11 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
-      // Store the access token in a cookie
       const { accessToken, user: userData } = response.data;
       document.cookie = `accessToken=${accessToken}; path=/; SameSite=Strict`;
 
-      // After successful login, verify the session
       await checkUserLoggedIn();
-      
-      // Redirect based on role
+
       if (userData?.roles?.[0]?.name) {
         router.push(getRedirectRoute(userData.roles[0].name));
       }
@@ -158,14 +136,12 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       await api.post("/logout", {}, { withCredentials: true });
-      // Clear both access and refresh tokens
       document.cookie = "accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
       document.cookie = "refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
       setUser(null);
       router.push("/auth/sign-in");
     } catch (error) {
       console.error("Logout failed:", error);
-      // Even if logout fails, clear the user state and cookies
       document.cookie = "accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
       document.cookie = "refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
       setUser(null);
@@ -187,10 +163,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      loading, 
-      login, 
+    <AuthContext.Provider value={{
+      user,
+      loading,
+      login,
       logout,
       checkUserLoggedIn
     }}>

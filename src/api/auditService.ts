@@ -1,42 +1,36 @@
-// src/api/auditService.ts
-export async function fetchAuditPrograms(token: string, role: string) {
+export async function fetchAuditPrograms() {
   try {
-    const response = await fetch(`http://localhost:5004/api/audit-programs`, {
-      credentials: 'include',
+    const response = await fetch("http://localhost:5004/api/audit-programs", {
+      credentials: "include",
     });
     if (!response.ok) {
       let errorMsg = "Failed to fetch audit programs";
       try {
         const errorData = await response.json();
         errorMsg = errorData.error || errorMsg;
-      } catch {
-        // ignore JSON parse error
-      }
+      } catch {}
       throw new Error(errorMsg);
     }
     const data = await response.json();
     return Array.isArray(data) ? data : [];
   } catch (error: any) {
-    // Optionally log error here
-    return []; // Return empty array to avoid breaking the UI
+    return [];
   }
 }
+
 export async function createAuditForProgram(
   programId: string,
   audit: {
     scope: string[];
-    specificAuditObjectives: string[]; // <-- PLURAL
+    specificAuditObjectives: string[];
     methods: string[];
     criteria: string[];
     auditNumber: string;
-  },
-  token: string
+  }
 ) {
   const response = await fetch(`http://localhost:5004/api/audits/${programId}/audits`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     credentials: 'include',
     body: JSON.stringify(audit),
   });
@@ -47,7 +41,7 @@ export async function createAuditForProgram(
   return response.json();
 }
 
-export async function getAuditProgramById(id: string, token: string) {
+export async function getAuditProgramById(id: string) {
   const response = await fetch(`http://localhost:5004/api/audit-programs/${id}`, {
     credentials: 'include',
   });
@@ -58,13 +52,19 @@ export async function getAuditProgramById(id: string, token: string) {
   return response.json();
 }
 
-
-export async function saveAuditDates(auditId: string, dates: { auditDates?: { startDate: string | null; endDate: string | null }; teamLeaderAppointment?: { appointmentDate: string }; teamMemberAppointments?: { appointmentDate: string }[]; followUpDates?: { startDate: string | null; endDate: string | null }; managementReviewDates?: { startDate: string | null; endDate: string | null } }, token: string) {
+export async function saveAuditDates(
+  auditId: string,
+  dates: {
+    auditDates?: { startDate: string | null; endDate: string | null };
+    teamLeaderAppointment?: { appointmentDate: string };
+    teamMemberAppointments?: { appointmentDate: string }[];
+    followUpDates?: { startDate: string | null; endDate: string | null };
+    managementReviewDates?: { startDate: string | null; endDate: string | null };
+  }
+) {
   const response = await fetch(`http://localhost:5004/api/audits/${auditId}/dates`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     credentials: 'include',
     body: JSON.stringify(dates),
   });
@@ -75,14 +75,16 @@ export async function saveAuditDates(auditId: string, dates: { auditDates?: { st
   return response.json();
 }
 
-
-
-export async function saveTeamAppointments(auditId: string, appointments: { teamLeader?: { appointmentDate: string; teamLeaderId: string }; teamMembers?: { appointmentDate: string; teamMemberIds: string[] } }, token: string) {
+export async function saveTeamAppointments(
+  auditId: string,
+  appointments: {
+    teamLeader?: { appointmentDate: string; teamLeaderId: string };
+    teamMembers?: { appointmentDate: string; teamMemberIds: string[] };
+  }
+) {
   const response = await fetch(`http://localhost:5004/api/audits/${auditId}/team-appointments`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     credentials: 'include',
     body: JSON.stringify(appointments),
   });
@@ -93,7 +95,7 @@ export async function saveTeamAppointments(auditId: string, appointments: { team
   return response.json();
 }
 
-export async function submitAuditProgram(programId: string, token: string) {
+export async function submitAuditProgram(programId: string) {
   const response = await fetch(`http://localhost:5004/api/audit-programs/${programId}/submit`, {
     method: "PUT",
     credentials: 'include',
@@ -104,12 +106,11 @@ export async function submitAuditProgram(programId: string, token: string) {
   }
   return response.json();
 }
-export async function updateAuditProgram(id: string, updatedProgram: any, token: string) {
+
+export async function updateAuditProgram(id: string, updatedProgram: any) {
   const response = await fetch(`http://localhost:5004/api/audit-programs/${id}`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     credentials: 'include',
     body: JSON.stringify({
       name: updatedProgram.name,
@@ -125,7 +126,7 @@ export async function updateAuditProgram(id: string, updatedProgram: any, token:
   return response.json();
 }
 
-export async function submitForApprovalAuditProgram(id: string, token: string) {
+export async function submitForApprovalAuditProgram(id: string) {
   const response = await fetch(`http://localhost:5004/api/audit-programs/${id}/submit`, {
     method: "PUT",
     credentials: 'include',
@@ -137,7 +138,7 @@ export async function submitForApprovalAuditProgram(id: string, token: string) {
   return response.json();
 }
 
-export async function approveAuditProgram(id: string, token: string) {
+export async function approveAuditProgram(id: string) {
   const response = await fetch(`http://localhost:5004/api/audit-programs/${id}/approve`, {
     method: "PUT",
     credentials: 'include',
@@ -149,7 +150,7 @@ export async function approveAuditProgram(id: string, token: string) {
   return response.json();
 }
 
-export async function rejectAuditProgram(id: string, token: string) {
+export async function rejectAuditProgram(id: string) {
   const response = await fetch(`http://localhost:5004/api/audit-programs/${id}/reject`, {
     method: "PUT",
     credentials: 'include',
@@ -161,7 +162,7 @@ export async function rejectAuditProgram(id: string, token: string) {
   return response.json();
 }
 
-export async function archiveAuditProgram(id: string, token: string) {
+export async function archiveAuditProgram(id: string) {
   const response = await fetch(`http://localhost:5004/api/audit-programs/${id}/archive`, {
     method: "PUT",
     credentials: 'include',
@@ -173,12 +174,10 @@ export async function archiveAuditProgram(id: string, token: string) {
   return response.json();
 }
 
-export async function createAuditProgram(newProgram: any, token: string) {
+export async function createAuditProgram(newProgram: any) {
   const programRes = await fetch("http://localhost:5004/api/audit-programs", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     credentials: 'include',
     body: JSON.stringify({
       name: newProgram.name,
@@ -212,20 +211,17 @@ export async function createAuditProgram(newProgram: any, token: string) {
         specificAuditObjectives: [],
         methods: [],
         criteria: [],
-      },
-      token
+      }
     );
   }
 
   return createdProgram;
 }
 
-export async function createAuditProgramWithAudits(newProgram: any, token: string) {
+export async function createAuditProgramWithAudits(newProgram: any) {
   const programRes = await fetch("http://localhost:5004/api/audit-programs", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     credentials: 'include',
     body: JSON.stringify({
       name: newProgram.name,
@@ -249,9 +245,7 @@ export async function createAuditProgramWithAudits(newProgram: any, token: strin
       `http://localhost:5004/api/audit-programs/${createdProgram.id}/audits`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         credentials: 'include',
         body: JSON.stringify(auditData),
       }
@@ -261,7 +255,7 @@ export async function createAuditProgramWithAudits(newProgram: any, token: strin
   return true;
 }
 
-export async function getAuditByProgramAndNumber(programId: string, auditNumber: string, token: string) {
+export async function getAuditByProgramAndNumber(programId: string, auditNumber: string) {
   const response = await fetch(`http://localhost:5004/api/audit-programs/${programId}`, {
     credentials: 'include',
   });
@@ -274,12 +268,10 @@ export async function getAuditByProgramAndNumber(programId: string, auditNumber:
   return audit || null;
 }
 
-export async function updateAudit(auditId: string, data: any, token: string) {
+export async function updateAudit(auditId: string, data: any) {
   const response = await fetch(`http://localhost:5004/api/audits/${auditId}`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     credentials: 'include',
     body: JSON.stringify(data),
   });

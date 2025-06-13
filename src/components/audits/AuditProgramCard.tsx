@@ -6,7 +6,7 @@ import ActionButtons from "./ActionButton";
 interface AuditProgramCardProps {
   program: AuditProgram;
   user: User;
-  token: string;
+
   actionStatus: ActionStatus;
   setActionStatus: React.Dispatch<React.SetStateAction<ActionStatus>>;
   setAuditPrograms: React.Dispatch<React.SetStateAction<AuditProgram[]>>;
@@ -15,7 +15,7 @@ interface AuditProgramCardProps {
 export default function AuditProgramCard({
   program,
   user,
-  token,
+
   actionStatus,
   setActionStatus,
   setAuditPrograms,
@@ -45,7 +45,7 @@ export default function AuditProgramCard({
         <ActionButtons
           program={program}
           user={user}
-          token={token}
+     
           actionStatus={actionStatus}
           setActionStatus={setActionStatus}
           setAuditPrograms={setAuditPrograms}
