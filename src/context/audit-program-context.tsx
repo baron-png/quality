@@ -49,19 +49,23 @@ export const AuditProgramProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [state, dispatch] = useReducer(auditProgramReducer, initialState);
   const { token } = useAuth();
 
-    const fetchProgram = useCallback(async (programId: string) => {
-    dispatch({ type: 'SET_LOADING', payload: true });
-    try {
-      const rawProgram = await getAuditProgramById(programId);
-      // Optionally transform the program here if needed
-      // const program = transformAuditFromBackend(rawProgram);
-      dispatch({ type: 'SET_PROGRAM', payload: rawProgram }); // or payload: program
-    } catch (error: any) {
-      dispatch({ type: 'SET_ERROR', payload: error.message || 'Failed to fetch program' });
-    } finally {
-      dispatch({ type: 'SET_LOADING', payload: false });
-    }
-  }, []);
+  
+const fetchProgram = useCallback(async (programId: string) => {
+  if (!token) {
+    dispatch({ type: 'SET_ERROR', payload: 'No access token available' });
+    dispatch({ type: 'SET_LOADING', payload: false });
+    return;
+  }
+  dispatch({ type: 'SET_LOADING', payload: true });
+  try {
+    const rawProgram = await getAuditProgramById(programId, token);
+    dispatch({ type: 'SET_PROGRAM', payload: rawProgram });
+  } catch (error: any) {
+    dispatch({ type: 'SET_ERROR', payload: error.message || 'Failed to fetch program' });
+  } finally {
+    dispatch({ type: 'SET_LOADING', payload: false });
+  }
+}, [token]);
 
   const updateAudit = useCallback((index: number, data: Partial<Audit>) => {
     dispatch({ type: 'UPDATE_AUDIT', payload: { index, data } });

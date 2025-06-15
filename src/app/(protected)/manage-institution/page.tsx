@@ -47,6 +47,8 @@ export default function ManageInstitutionPage() {
     </div>
   );
 
+  console.log('Departments data:', institution.departments);
+  console.log('Users data:', users);
   const departmentColumns = [
     { key: 'name', label: 'Name', sortable: true },
     { key: 'code', label: 'Code', sortable: true },

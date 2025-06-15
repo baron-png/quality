@@ -8,23 +8,29 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import AuditProgramCard from "@/components/audits/AuditProgramCard";
+
 import { fetchAuditPrograms } from "@/api/auditService";
 import { AuditProgram, ActionStatus } from "@/types/audit";
 
 export default function AuditProgramsPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const token = user?.accessToken; // Assuming user object contains the token
   const searchParams = useSearchParams();
   const initialTab = searchParams.get("tab") || "draft";
   const [tab, setTab] = useState<string>(initialTab);
   const [auditPrograms, setAuditPrograms] = useState<AuditProgram[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [actionStatus, setActionStatus] = useState<ActionStatus>({});
-useEffect(() => {
-    if (!user) return;
+  
+    useEffect(() => {
+    if (!user || !token) {
+      setLoading(false);
+      return;
+    }
     const fetchPrograms = async () => {
       try {
-        const programs = await fetchAuditPrograms();
+        const programs = await fetchAuditPrograms(token);
         setAuditPrograms(programs);
       } catch (error: any) {
         setAuditPrograms([]);
@@ -34,7 +40,7 @@ useEffect(() => {
       }
     };
     fetchPrograms();
-  }, [user]);
+  }, [user, token]);
 
   const handleCreateProgram = () => {
     router.push("/audit/audit-program/create");
@@ -53,7 +59,7 @@ useEffect(() => {
       : status === "Pending Approval";
   });
 
-  if (loading) {
+    if (authLoading || loading) {
     return (
       <div className="p-6 max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold mb-6">Audit Programs</h1>

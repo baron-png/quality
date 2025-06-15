@@ -1,7 +1,10 @@
-export async function fetchAuditPrograms() {
+export async function fetchAuditPrograms(token: string) {
   try {
     const response = await fetch("http://localhost:5004/api/audit-programs", {
       credentials: "include",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
     if (!response.ok) {
       let errorMsg = "Failed to fetch audit programs";
@@ -17,7 +20,6 @@ export async function fetchAuditPrograms() {
     return [];
   }
 }
-
 export async function createAuditForProgram(
   programId: string,
   audit: {
@@ -26,11 +28,16 @@ export async function createAuditForProgram(
     methods: string[];
     criteria: string[];
     auditNumber: string;
-  }
+  },
+  token: string // <-- Add token parameter
 ) {
+  console.log("[createAuditForProgram] Token:", token); // Log the token being used
   const response = await fetch(`http://localhost:5004/api/audits/${programId}/audits`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`, // <-- Send token here
+    },
     credentials: 'include',
     body: JSON.stringify(audit),
   });
@@ -41,9 +48,12 @@ export async function createAuditForProgram(
   return response.json();
 }
 
-export async function getAuditProgramById(id: string) {
+export async function getAuditProgramById(id: string, token: string) {
   const response = await fetch(`http://localhost:5004/api/audit-programs/${id}`, {
     credentials: 'include',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   });
   if (!response.ok) {
     const errorData = await response.json();
@@ -173,11 +183,13 @@ export async function archiveAuditProgram(id: string) {
   }
   return response.json();
 }
-
-export async function createAuditProgram(newProgram: any) {
+export async function createAuditProgram(newProgram: any, token: string) {
   const programRes = await fetch("http://localhost:5004/api/audit-programs", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
     credentials: 'include',
     body: JSON.stringify({
       name: newProgram.name,
@@ -185,9 +197,9 @@ export async function createAuditProgram(newProgram: any) {
       status: "Draft",
       startDate: newProgram.startDate,
       endDate: newProgram.endDate,
-      tenantId: newProgram.tenantId,
-      tenantName: newProgram.tenantName,
-      createdBy: newProgram.createdBy,
+      tenantId: newProgram.tenantId,      // Must match JWT
+      tenantName: newProgram.tenantName,  // Required
+      // Do NOT send createdBy
     }),
   });
   if (!programRes.ok) throw new Error("Failed to create audit program");
@@ -211,13 +223,14 @@ export async function createAuditProgram(newProgram: any) {
         specificAuditObjectives: [],
         methods: [],
         criteria: [],
-      }
+        // Do NOT send createdBy here unless your backend expects it for audits
+      },
+      token
     );
   }
 
   return createdProgram;
 }
-
 export async function createAuditProgramWithAudits(newProgram: any) {
   const programRes = await fetch("http://localhost:5004/api/audit-programs", {
     method: "POST",

@@ -84,7 +84,8 @@ const AuditDetailsPage = () => {
         await updateAudit(auditDetails.id, payload);
         setSuccess("Audit updated successfully");
       } else {
-        await createAuditForProgram(programId as string, payload);
+        console.log("Token being sent to createAuditForProgram:", token); // <-- Add this line
+               await createAuditForProgram(programId as string, payload, token);
         setSuccess("Audit created successfully");
       }
 

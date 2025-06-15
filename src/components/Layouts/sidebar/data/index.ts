@@ -11,7 +11,7 @@ export const NAV_DATA = [
         items: [
           {
             title: "Analytics",
-            url: "/",
+            url: "/dashboard",
             roles: ["SUPER_ADMIN", "SYSTEM_ADMIN", "MR", "USER"],
           },
         ],

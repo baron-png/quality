@@ -5,18 +5,22 @@ import { useParams } from "next/navigation";
 import { Box, CircularProgress } from "@mui/material";
 import AuditProgramDetails from "@/components/audits/AuditProgramDetails";
 import { useAuditProgram } from "@/context/audit-program-context";
+import { useAuth } from "@/context/auth-context";
 
 export default function AuditProgramDetailsPage() {
   const { id } = useParams();
-  const { program, loading, error, fetchProgram } = useAuditProgram();
+  const { fetchProgram, program, loading, error } = useAuditProgram();
+  const { user, loading: authLoading } = useAuth();
+const token = user?.accessToken;
 
-  useEffect(() => {
-    if (id) {
-      fetchProgram(id as string);
-    }
-  }, [id, fetchProgram]);
+useEffect(() => {
+  if (authLoading) return; // Wait for auth to finish loading
+  if (id && token) {
+    fetchProgram(id as string);
+  }
+}, [id, token, fetchProgram, authLoading]);
 
-  if (loading) {
+    if (authLoading || loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
         <CircularProgress />

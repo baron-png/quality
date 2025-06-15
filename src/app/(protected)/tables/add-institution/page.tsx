@@ -1,4 +1,4 @@
-import AddInstitutionForm from "@/app/tables/add-institution/AddInstitutionForm";
+import AddInstitutionForm from "@/app/(protected)/tables/add-institution/AddInstitutionForm";
 
 export default function AddInstitutionPage() {
   return (

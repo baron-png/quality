@@ -39,6 +39,7 @@ export function UserFormModal({ isOpen, onClose, onSubmit, user, roles, departme
       departmentId: 'none',
     });
     if (user?.roleIds) setValue('roleIds', user.roleIds);
+        console.log("Roles in UserFormModal:", roles);
     if (user?.departmentId) setValue('departmentId', user.departmentId);
   }, [user, reset, setValue]);
 
@@ -122,11 +123,13 @@ export function UserFormModal({ isOpen, onClose, onSubmit, user, roles, departme
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
-                  {roles.map((role) => (
-                    <SelectItem key={role.id} value={role.id}>
-                      {role.name}
-                    </SelectItem>
-                  ))}
+                  {roles
+                    .filter((role) => !!role && !!role.id)
+                    .map((role, idx) => (
+                      <SelectItem key={role.id || idx} value={role.id}>
+                        {role.name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
               {errors.roleIds && <p className="text-red-500 text-sm">Role is required</p>}
@@ -145,7 +148,7 @@ export function UserFormModal({ isOpen, onClose, onSubmit, user, roles, departme
                   <SelectValue placeholder="Select a department" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem key="none" value="none">None</SelectItem>
                   {departments.map((dept) => (
                     <SelectItem key={dept.id} value={dept.id}>
                       {dept.name}

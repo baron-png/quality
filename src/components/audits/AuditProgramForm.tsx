@@ -3,7 +3,7 @@ import { Button, TextField, Box, Typography } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
-import AuditObjectiveInput from "../../app/audit/audit-program/create/AuditObjectiveInput";
+import AuditObjectiveInput from "../../app/(protected)/audit/audit-program/create/AuditObjectiveInput";
 import AuditProgramDetails from "./AuditProgramDetails";
 
 interface NewProgram {
