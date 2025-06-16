@@ -116,11 +116,20 @@ export async function saveTeamAppointments(
   return response.json();
 }
 
-export async function submitAuditProgram(programId: string) {
+export async function submitAuditProgram(programId: string, token: string) {
+  if (!token) {
+    throw new Error("Authentication token is required");
+  }
+
   const response = await fetch(`http://localhost:5004/api/audit-programs/${programId}/submit`, {
     method: "PUT",
     credentials: 'include',
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
   });
+
   if (!response.ok) {
     const errorData = await response.json();
     throw new Error(errorData.error || "Failed to submit audit program");

@@ -30,16 +30,17 @@ interface User {
   label: string;
 }
 
-interface AuditTableProps {
+export interface AuditTableProps {
   audits: Audit[];
   programStatus: string;
   onInputChange: (index: number, field: string, value: string | string[]) => void;
   onOpenAuditDetails: (index: number, auditHeader: string) => void;
   setError: (error: string | null) => void;
   setSuccess: (success: string | null) => void;
-  refreshAudits: () => Promise<void>;
+  refreshAudits: () => void;
   onTeamLeaderIdsChange: (ids: string[]) => void;
   onTeamMemberIdsChange: (ids: string[][]) => void;
+  readOnly?: boolean;
 }
 
 // Memoized cell components for better performance
@@ -48,46 +49,54 @@ const AuditCell = memo(({
   index, 
   onOpenAuditDetails, 
   auditHeader,
-  programStatus 
+  programStatus,
+  readOnly
 }: { 
   audit: Audit; 
   index: number; 
   onOpenAuditDetails: (index: number, auditHeader: string) => void; 
   auditHeader: string;
   programStatus: string;
+  readOnly: boolean;
 }) => {
   const hasData = audit.scope?.length > 0 || 
                  audit.specificAuditObjective?.length > 0 || 
                  audit.methods?.length > 0 || 
                  audit.criteria?.length > 0;
 
+  // For new audits (no data), we want to show an enabled "Open" button
+  // For existing audits with data, we show an "Edit" button
+  // For existing audits without data, we show a disabled "Edit" button
+  const buttonText = hasData ? "Edit" : "Open";
+  const isDisabled = readOnly || (hasData && !audit.scope?.length && !audit.specificAuditObjective?.length && !audit.methods?.length && !audit.criteria?.length);
+
   return (
-    <TableCell align="center" sx={{ minWidth: 200 }}>
-      <Button
-        variant={hasData ? "outlined" : "contained"}
-        onClick={() => onOpenAuditDetails(index, auditHeader)}
-        sx={{
-          minWidth: 100,
-          textTransform: "none",
-          ...(hasData ? {
-            color: "#1A73E8",
-            borderColor: "#1A73E8",
-            "&:hover": {
-              borderColor: "#1557B0",
-              backgroundColor: "rgba(26, 115, 232, 0.04)"
-            }
-          } : {
-            backgroundColor: "#1A73E8",
-            color: "white",
-            "&:hover": {
-              backgroundColor: "#1557B0"
-            }
-          })
-        }}
-      >
-        {hasData ? "Edit" : "Open"}
-      </Button>
-    </TableCell>
+    <Button
+      variant={hasData ? "outlined" : "contained"}
+      onClick={() => onOpenAuditDetails(index, auditHeader)}
+      sx={{
+        minWidth: 100,
+        textTransform: "none",
+        ...(hasData ? {
+          color: "#1A73E8",
+          borderColor: "#1A73E8",
+          "&:hover": {
+            borderColor: "#1557B0",
+            backgroundColor: "rgba(26, 115, 232, 0.04)"
+          }
+        } : {
+          backgroundColor: "#1A73E8",
+          color: "white",
+          "&:hover": {
+            backgroundColor: "#1557B0"
+          }
+        }),
+        "&:disabled": { bgcolor: "#B0BEC5" }
+      }}
+      disabled={isDisabled}
+    >
+      {buttonText}
+    </Button>
   );
 });
 
@@ -100,7 +109,8 @@ const DatePickerCell = memo(({
   programStatus,
   fieldFrom,
   fieldTo,
-  label
+  label,
+  readOnly
 }: { 
   audit: Audit; 
   index: number; 
@@ -109,6 +119,7 @@ const DatePickerCell = memo(({
   fieldFrom: keyof Audit;
   fieldTo: keyof Audit;
   label: string;
+  readOnly: boolean;
 }) => (
   <TableCell align="center" sx={{ minWidth: 200 }}>
     <TextField
@@ -119,7 +130,7 @@ const DatePickerCell = memo(({
       InputProps={{ sx: { borderRadius: "8px" } }}
       size="small"
       variant="outlined"
-      disabled={programStatus !== "Draft"}
+      disabled={readOnly || programStatus !== "Draft"}
       fullWidth
       sx={{ mb: 1 }}
       error={isInvalidDate(audit[fieldFrom] as string)}
@@ -133,7 +144,7 @@ const DatePickerCell = memo(({
       InputProps={{ sx: { borderRadius: "8px" } }}
       size="small"
       variant="outlined"
-      disabled={programStatus !== "Draft"}
+      disabled={readOnly || programStatus !== "Draft"}
       fullWidth
       error={isInvalidDate(audit[fieldTo] as string)}
       helperText={getHelperText(audit[fieldTo] as string)}
@@ -151,7 +162,8 @@ const TeamLeaderCell = memo(({
   audits,
   programStatus,
   users,
-  loadingUsers
+  loadingUsers,
+  readOnly
 }: { 
   audit: Audit; 
   index: number; 
@@ -161,67 +173,71 @@ const TeamLeaderCell = memo(({
   programStatus: string;
   users: User[];
   loadingUsers: boolean;
-}) => (
-  <TableCell align="center" sx={{ minWidth: 200 }}>
-    <Tooltip
-      title={
-        !audit.teamLeaderDate
-          ? "Set appointment date first"
-          : !isDateValidAndDue(audit.teamLeaderDate)
-          ? "Appointment date is not due yet"
-          : ""
-      }
-    >
-      <Box>
-        <Autocomplete
-          options={users}
-          getOptionLabel={(option) => option.label}
-          value={users.find((u) => u.id === audit.teamLeaderId) || null}
-          onChange={(e, value) => {
-            const newIds = audits.map((a, i) => (i === index ? value?.id || "" : a.teamLeaderId));
-            onTeamLeaderIdsChange(newIds);
-          }}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              size="small"
-              variant="outlined"
-              placeholder="Select Team Leader"
-              InputProps={{
-                ...params.InputProps,
-                endAdornment: (
-                  <>
-                    {loadingUsers && <CircularProgress size={20} />}
-                    {params.InputProps.endAdornment}
-                  </>
-                ),
-              }}
-            />
-          )}
-          disabled={
-            programStatus !== "Draft" ||
-            !audit.teamLeaderDate ||
-            !isDateValidAndDue(audit.teamLeaderDate)
-          }
-          sx={{ mb: 1 }}
-        />
-      </Box>
-    </Tooltip>
-    <TextField
-      type="date"
-      label="Appointment Date"
-      value={formatDateForInput(audit.teamLeaderDate)}
-      onChange={(e) => onInputChange(index, "teamLeaderDate", e.target.value)}
-      InputProps={{ sx: { borderRadius: "8px" } }}
-      size="small"
-      variant="outlined"
-      disabled={programStatus !== "Draft"}
-      fullWidth
-      error={isInvalidDate(audit.teamLeaderDate)}
-      helperText={getHelperText(audit.teamLeaderDate)}
-    />
-  </TableCell>
-));
+  readOnly: boolean;
+}) => {
+  return (
+    <TableCell align="center" sx={{ minWidth: 200 }}>
+      <Tooltip
+        title={
+          !audit.teamLeaderDate
+            ? "Set appointment date first"
+            : !isDateValidAndDue(audit.teamLeaderDate)
+            ? "Appointment date is not due yet"
+            : ""
+        }
+      >
+        <Box>
+          <Autocomplete
+            options={users}
+            getOptionLabel={(option) => option.label}
+            value={users.find((u) => u.id === audit.teamLeaderId) || null}
+            onChange={(e, value) => {
+              const newIds = audits.map((a, i) => (i === index ? value?.id || "" : a.teamLeaderId));
+              onTeamLeaderIdsChange(newIds);
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                size="small"
+                variant="outlined"
+                placeholder="Select Team Leader"
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>
+                      {loadingUsers && <CircularProgress size={20} />}
+                      {params.InputProps.endAdornment}
+                    </>
+                  ),
+                }}
+              />
+            )}
+            disabled={
+              readOnly ||
+              programStatus !== "Draft" ||
+              !audit.teamLeaderDate ||
+              !isDateValidAndDue(audit.teamLeaderDate)
+            }
+            sx={{ mb: 1 }}
+          />
+        </Box>
+      </Tooltip>
+      <TextField
+        type="date"
+        label="Appointment Date"
+        value={formatDateForInput(audit.teamLeaderDate)}
+        onChange={(e) => onInputChange(index, "teamLeaderDate", e.target.value)}
+        InputProps={{ sx: { borderRadius: "8px" } }}
+        size="small"
+        variant="outlined"
+        disabled={readOnly || programStatus !== "Draft"}
+        fullWidth
+        error={isInvalidDate(audit.teamLeaderDate)}
+        helperText={getHelperText(audit.teamLeaderDate)}
+      />
+    </TableCell>
+  );
+});
 
 TeamLeaderCell.displayName = 'TeamLeaderCell';
 
@@ -233,7 +249,8 @@ const TeamMembersCell = memo(({
   audits,
   programStatus,
   users,
-  loadingUsers
+  loadingUsers,
+  readOnly
 }: { 
   audit: Audit; 
   index: number; 
@@ -243,68 +260,72 @@ const TeamMembersCell = memo(({
   programStatus: string;
   users: User[];
   loadingUsers: boolean;
-}) => (
-  <TableCell align="center" sx={{ minWidth: 200 }}>
-    <Tooltip
-      title={
-        !audit.teamMembersDate
-          ? "Set appointment date first"
-          : !isDateValidAndDue(audit.teamMembersDate)
-          ? "Appointment date is not due yet"
-          : ""
-      }
-    >
-      <Box>
-        <Autocomplete
-          multiple
-          options={users}
-          getOptionLabel={(option) => option.label}
-          value={users.filter((u) => audit.teamMemberIds.includes(u.id)) || []}
-          onChange={(e, value) => {
-            const newIds = audits.map((a, i) => (i === index ? value.map((v) => v.id) : a.teamMemberIds));
-            onTeamMemberIdsChange(newIds);
-          }}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              size="small"
-              variant="outlined"
-              placeholder="Select Team Members"
-              InputProps={{
-                ...params.InputProps,
-                endAdornment: (
-                  <>
-                    {loadingUsers && <CircularProgress size={20} />}
-                    {params.InputProps.endAdornment}
-                  </>
-                ),
-              }}
-            />
-          )}
-          disabled={
-            programStatus !== "Draft" ||
-            !audit.teamMembersDate ||
-            !isDateValidAndDue(audit.teamMembersDate)
-          }
-          sx={{ mb: 1 }}
-        />
-      </Box>
-    </Tooltip>
-    <TextField
-      type="date"
-      label="Appointment Date"
-      value={formatDateForInput(audit.teamMembersDate)}
-      onChange={(e) => onInputChange(index, "teamMembersDate", e.target.value)}
-      InputProps={{ sx: { borderRadius: "8px" } }}
-      size="small"
-      variant="outlined"
-      disabled={programStatus !== "Draft"}
-      fullWidth
-      error={isInvalidDate(audit.teamMembersDate)}
-      helperText={getHelperText(audit.teamMembersDate)}
-    />
-  </TableCell>
-));
+  readOnly: boolean;
+}) => {
+  return (
+    <TableCell align="center" sx={{ minWidth: 200 }}>
+      <Tooltip
+        title={
+          !audit.teamMembersDate
+            ? "Set appointment date first"
+            : !isDateValidAndDue(audit.teamMembersDate)
+            ? "Appointment date is not due yet"
+            : ""
+        }
+      >
+        <Box>
+          <Autocomplete
+            multiple
+            options={users}
+            getOptionLabel={(option) => option.label}
+            value={users.filter((u) => audit.teamMemberIds.includes(u.id)) || []}
+            onChange={(e, value) => {
+              const newIds = audits.map((a, i) => (i === index ? value.map((v) => v.id) : a.teamMemberIds));
+              onTeamMemberIdsChange(newIds);
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                size="small"
+                variant="outlined"
+                placeholder="Select Team Members"
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>
+                      {loadingUsers && <CircularProgress size={20} />}
+                      {params.InputProps.endAdornment}
+                    </>
+                  ),
+                }}
+              />
+            )}
+            disabled={
+              readOnly ||
+              programStatus !== "Draft" ||
+              !audit.teamMembersDate ||
+              !isDateValidAndDue(audit.teamMembersDate)
+            }
+            sx={{ mb: 1 }}
+          />
+        </Box>
+      </Tooltip>
+      <TextField
+        type="date"
+        label="Appointment Date"
+        value={formatDateForInput(audit.teamMembersDate)}
+        onChange={(e) => onInputChange(index, "teamMembersDate", e.target.value)}
+        InputProps={{ sx: { borderRadius: "8px" } }}
+        size="small"
+        variant="outlined"
+        disabled={readOnly || programStatus !== "Draft"}
+        fullWidth
+        error={isInvalidDate(audit.teamMembersDate)}
+        helperText={getHelperText(audit.teamMembersDate)}
+      />
+    </TableCell>
+  );
+});
 
 TeamMembersCell.displayName = 'TeamMembersCell';
 
@@ -313,30 +334,32 @@ const SaveDatesCell = memo(({
   index, 
   programStatus, 
   onSaveDates,
-  savingIndex 
+  savingIndex,
+  readOnly
 }: { 
   audit: Audit; 
-  index: number; 
-  programStatus: string;
+  index: number;
+  programStatus: string; 
   onSaveDates: (index: number) => void;
   savingIndex: number | null;
+  readOnly: boolean;
 }) => (
   <TableCell align="center" sx={{ minWidth: 200 }}>
     <Button
       variant="contained"
-      size="small"
       sx={{
-        bgcolor: "#34A853",
+        bgcolor: "#1A73E8",
         color: "white",
         textTransform: "none",
-        borderRadius: "8px",
-        px: 3,
-        py: 1,
-        "&:hover": { bgcolor: "#2E8B47" },
-        "&:disabled": { bgcolor: "#B0BEC5" },
+        "&:hover": { 
+          bgcolor: "#1557B0"
+        },
+        "&:disabled": { 
+          bgcolor: "#B0BEC5" 
+        }
       }}
       onClick={() => onSaveDates(index)}
-      disabled={programStatus !== "Draft" || !audit.id || savingIndex === index}
+      disabled={readOnly || programStatus !== "Draft" || !audit.id || savingIndex === index}
       startIcon={savingIndex === index ? <CircularProgress size={20} color="inherit" /> : null}
     >
       {savingIndex === index ? "Saving..." : "Save Dates"}
@@ -365,6 +388,7 @@ const AuditTable: React.FC<AuditTableProps> = ({
   refreshAudits,
   onTeamLeaderIdsChange,
   onTeamMemberIdsChange,
+  readOnly = false
 }) => {
   const { token } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
@@ -442,8 +466,9 @@ const AuditTable: React.FC<AuditTableProps> = ({
       onOpenAuditDetails={onOpenAuditDetails}
       auditHeader={auditHeaders[index]}
       programStatus={programStatus}
+      readOnly={readOnly}
     />
-  ), [onOpenAuditDetails, programStatus]);
+  ), [onOpenAuditDetails, programStatus, readOnly]);
 
   const renderDateCell = useCallback((audit: Audit, index: number) => (
     <DatePickerCell
@@ -455,8 +480,9 @@ const AuditTable: React.FC<AuditTableProps> = ({
       fieldFrom="auditDateFrom"
       fieldTo="auditDateTo"
       label="Audit Date"
+      readOnly={readOnly}
     />
-  ), [onInputChange, programStatus]);
+  ), [onInputChange, programStatus, readOnly]);
 
   const renderTeamLeaderCell = useCallback((audit: Audit, index: number) => (
     <TeamLeaderCell
@@ -469,8 +495,9 @@ const AuditTable: React.FC<AuditTableProps> = ({
       programStatus={programStatus}
       users={users}
       loadingUsers={loadingUsers}
+      readOnly={readOnly}
     />
-  ), [onInputChange, onTeamLeaderIdsChange, audits, programStatus, users, loadingUsers]);
+  ), [onInputChange, onTeamLeaderIdsChange, audits, programStatus, users, loadingUsers, readOnly]);
 
   const renderTeamMembersCell = useCallback((audit: Audit, index: number) => (
     <TeamMembersCell
@@ -483,8 +510,9 @@ const AuditTable: React.FC<AuditTableProps> = ({
       programStatus={programStatus}
       users={users}
       loadingUsers={loadingUsers}
+      readOnly={readOnly}
     />
-  ), [onInputChange, onTeamMemberIdsChange, audits, programStatus, users, loadingUsers]);
+  ), [onInputChange, onTeamMemberIdsChange, audits, programStatus, users, loadingUsers, readOnly]);
 
   const renderFollowUpCell = useCallback((audit: Audit, index: number) => (
     <DatePickerCell
@@ -496,8 +524,9 @@ const AuditTable: React.FC<AuditTableProps> = ({
       fieldFrom="followUpDateFrom"
       fieldTo="followUpDateTo"
       label="Follow-up Date"
+      readOnly={readOnly}
     />
-  ), [onInputChange, programStatus]);
+  ), [onInputChange, programStatus, readOnly]);
 
   const renderManagementReviewCell = useCallback((audit: Audit, index: number) => (
     <DatePickerCell
@@ -509,8 +538,9 @@ const AuditTable: React.FC<AuditTableProps> = ({
       fieldFrom="managementReviewDateFrom"
       fieldTo="managementReviewDateTo"
       label="Management Review Date"
+      readOnly={readOnly}
     />
-  ), [onInputChange, programStatus]);
+  ), [onInputChange, programStatus, readOnly]);
 
   const renderSaveDatesCell = useCallback((audit: Audit, index: number) => (
     <SaveDatesCell
@@ -520,8 +550,9 @@ const AuditTable: React.FC<AuditTableProps> = ({
       programStatus={programStatus}
       onSaveDates={handleSaveDates}
       savingIndex={savingIndex}
+      readOnly={readOnly}
     />
-  ), [programStatus, handleSaveDates, savingIndex]);
+  ), [programStatus, handleSaveDates, savingIndex, readOnly]);
 
   return (
     <TableContainer component={Paper} sx={{ boxShadow: "none" }}>

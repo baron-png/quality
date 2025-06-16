@@ -19,8 +19,8 @@ export interface Audit {
   criteria: string[];
   auditDateFrom: string;
   auditDateTo: string;
-  teamLeaderId: string;
   teamLeaderDate: string;
+  teamLeaderId: string;
   teamMemberIds: string[];
   teamMembersDate: string;
   followUpDateFrom: string;
@@ -37,20 +37,32 @@ export interface AuditProgram {
   startDate: string;
   endDate: string;
   tenantId?: string;
-  tenantName?: string;
   createdBy?: string;
-  createdAt?: string;
-  updatedAt?: string;
   audits: Audit[];
 }
 
 // API Types
 export interface SaveAuditDatesPayload {
-  auditDates?: AuditDates;
-  teamLeaderAppointment?: TeamAppointment;
-  teamMemberAppointments?: TeamAppointment[];
-  followUpDates?: AuditDates;
-  managementReviewDates?: AuditDates;
+  auditDates?: {
+    startDate: string;
+    endDate: string;
+  };
+  teamLeaderAppointment?: {
+    appointmentDate: string;
+    teamLeaderId: string;
+  };
+  teamMemberAppointments?: Array<{
+    appointmentDate: string;
+    teamMemberIds: string[];
+  }>;
+  followUpDates?: {
+    startDate: string;
+    endDate: string;
+  };
+  managementReviewDates?: {
+    startDate: string;
+    endDate: string;
+  };
 }
 
 export interface CreateAuditPayload {
@@ -68,8 +80,10 @@ export interface AuditValidationResult {
     hasId: boolean;
     hasScopeOrObjective: boolean;
     hasAuditDates: boolean;
-   
+    hasMethods: boolean;
+    hasCriteria: boolean;
   };
+  errorMessages: string[];
 }
 
 // Context Types

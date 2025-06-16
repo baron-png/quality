@@ -20,6 +20,7 @@ interface Notification {
   link?: string;
   createdAt?: string;
   isRead: boolean;
+  userId?: string;
 }
 
 export function Notification() {
@@ -54,7 +55,7 @@ export function Notification() {
 
   // Setup WebSocket connection
   useEffect(() => {
-    if (!user?.tenantId || !token) return;
+    if (!user?.tenantId || !token || !user?.id) return;
 
     const notificationServiceUrl = process.env.NEXT_PUBLIC_NOTIFICATION_SERVICE_URL;
     if (!notificationServiceUrl) {
@@ -63,25 +64,36 @@ export function Notification() {
     }
 
     const socket = io(notificationServiceUrl, {
-      query: { tenantId: user.tenantId },
+      query: { 
+        tenantId: user.tenantId,
+        userId: user.id 
+      },
       transports: ["websocket"],
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
-      auth: { token }, // Include token for authentication
+      auth: { token },
     });
     socketRef.current = socket;
 
     socket.on("connect", () => {
       console.log("WebSocket connected");
-      socket.emit("join", { tenantId: user.tenantId });
+      // Join both tenant and user rooms
+      socket.emit("join", { 
+        tenantId: user.tenantId,
+        userId: user.id 
+      });
     });
 
     socket.on("notificationCreated", (notification: Notification) => {
-      setNotifications((prev) => {
-        if (prev.some((n) => n.id === notification.id)) return prev;
-        return [notification, ...prev];
-      });
+      console.log("Received notification:", notification);
+      // Only add notification if it's for this user or tenant-wide
+      if (!notification.userId || notification.userId === user.id) {
+        setNotifications((prev) => {
+          if (prev.some((n) => n.id === notification.id)) return prev;
+          return [notification, ...prev];
+        });
+      }
     });
 
     socket.on("connect_error", (error) => {
@@ -98,21 +110,27 @@ export function Notification() {
     });
 
     return () => {
-      socket.disconnect();
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
     };
-  }, [user?.tenantId, token]);
+  }, [user?.tenantId, user?.id, token]);
 
   // Fetch initial notifications on mount
   useEffect(() => {
-    if (!token || hasFetched.current) return;
+    if (!token || hasFetched.current || !user?.id) return;
 
     setLoading(true);
-    fetch(`${process.env.NEXT_PUBLIC_NOTIFICATION_SERVICE_URL}/api/notifications`, {
+    fetch(`${process.env.NEXT_PUBLIC_NOTIFICATION_SERVICE_URL}/api/notifications?userId=${user.id}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
       .then((data) => {
-        setNotifications(data.notifications || data);
+        // Filter notifications for this user
+        const userNotifications = (data.notifications || data).filter(
+          (n: Notification) => !n.userId || n.userId === user.id
+        );
+        setNotifications(userNotifications);
         hasFetched.current = true;
       })
       .catch((error) => {
@@ -120,7 +138,7 @@ export function Notification() {
         setNotifications([]);
       })
       .finally(() => setLoading(false));
-  }, [token]);
+  }, [token, user?.id]);
 
   // Mark notifications as read on server when dropdown is opened (optional)
   useEffect(() => {

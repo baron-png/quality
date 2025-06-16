@@ -83,6 +83,7 @@ export const AuthProvider = ({ children }) => {
       if (response.data) {
         const primaryRole = response.data.roles?.[0]?.name || "default";
         const accessToken = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+        console.log("token", accessToken);
         setUser({ ...response.data, primaryRole, accessToken });
       }
     } catch (error) {

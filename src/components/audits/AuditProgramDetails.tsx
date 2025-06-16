@@ -85,6 +85,107 @@ const CommitDialog = memo(({
 
 CommitDialog.displayName = 'CommitDialog';
 
+// Add new button components for admin actions
+const AdminActionButtons = memo(({ 
+  onApprove, 
+  onReject,
+  disabled
+}: { 
+  onApprove: () => void;
+  onReject: () => void;
+  disabled: boolean;
+}) => (
+  <Box sx={{ display: "flex", gap: 2 }}>
+    <Button
+      variant="contained"
+      onClick={onApprove}
+      disabled={disabled}
+      sx={{
+        bgcolor: "#34A853",
+        color: "white",
+        textTransform: "none",
+        borderRadius: "8px",
+        px: 3,
+        py: 1,
+        "&:hover": { bgcolor: "#2E8B47" },
+        "&:disabled": { bgcolor: "#B0BEC5" }
+      }}
+    >
+      Approve Program
+    </Button>
+    <Button
+      variant="contained"
+      onClick={onReject}
+      disabled={disabled}
+      sx={{
+        bgcolor: "#EA4335",
+        color: "white",
+        textTransform: "none",
+        borderRadius: "8px",
+        px: 3,
+        py: 1,
+        "&:hover": { bgcolor: "#D33426" },
+        "&:disabled": { bgcolor: "#B0BEC5" }
+      }}
+    >
+      Reject Program
+    </Button>
+  </Box>
+));
+
+AdminActionButtons.displayName = 'AdminActionButtons';
+
+// Add new dialog for admin actions
+const AdminActionDialog = memo(({ 
+  open, 
+  onClose, 
+  onConfirm,
+  action
+}: { 
+  open: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  action: 'approve' | 'reject';
+}) => (
+  <Dialog open={open} onClose={onClose}>
+    <DialogTitle>
+      {action === 'approve' ? 'Approve Program' : 'Reject Program'}
+    </DialogTitle>
+    <DialogContent>
+      <Typography>
+        Are you sure you want to {action} this audit program? This action cannot be undone.
+      </Typography>
+    </DialogContent>
+    <DialogActions>
+      <Button 
+        onClick={onClose} 
+        sx={{ 
+          color: "#5F6368", 
+          textTransform: "none" 
+        }}
+      >
+        Cancel
+      </Button>
+      <Button
+        onClick={onConfirm}
+        variant="contained"
+        sx={{ 
+          bgcolor: action === 'approve' ? "#34A853" : "#EA4335",
+          color: "white", 
+          textTransform: "none", 
+          "&:hover": { 
+            bgcolor: action === 'approve' ? "#2E8B47" : "#D33426"
+          } 
+        }}
+      >
+        {action === 'approve' ? 'Approve' : 'Reject'}
+      </Button>
+    </DialogActions>
+  </Dialog>
+));
+
+AdminActionDialog.displayName = 'AdminActionDialog';
+
 interface AuditProgramDetailsProps {
   program: {
     id: string;
@@ -99,6 +200,10 @@ interface AuditProgramDetailsProps {
   };
 }
 
+interface Role {
+  name: string;
+}
+
 const auditHeaders = [
   "1ST INTERNAL AUDIT",
   "1ST SURVEILLANCE AUDIT",
@@ -110,7 +215,7 @@ const auditHeaders = [
 
 const AuditProgramDetails: React.FC<AuditProgramDetailsProps> = ({ program: initialProgram }) => {
   const router = useRouter();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const { 
     program,
     error, 
@@ -120,10 +225,14 @@ const AuditProgramDetails: React.FC<AuditProgramDetailsProps> = ({ program: init
     handleSaveAuditDates, 
     fetchProgram,
     canCommit,
-    handleCommit: commitProgram
+    handleCommit: commitProgram,
+    handleApprove: approveProgram,
+    handleReject: rejectProgram
   } = useAuditProgram();
   
   const [openDialog, setOpenDialog] = useState<boolean>(false);
+  const [adminAction, setAdminAction] = useState<'approve' | 'reject' | null>(null);
+  const isAdmin = user?.roles?.some((role: Role) => role.name === 'SYSTEM_ADMIN');
 
   // Only fetch on mount if we have an initial program and no program in context
   useEffect(() => {
@@ -135,6 +244,9 @@ const AuditProgramDetails: React.FC<AuditProgramDetailsProps> = ({ program: init
   // Use program from context, fallback to initialProgram if context program is null
   const currentProgram = program || initialProgram;
   if (!currentProgram) return null;
+
+  // Only set readOnly to true if user is admin AND program is pending approval
+  const isReadOnly = isAdmin && currentProgram.status === 'PENDING_APPROVAL';
 
   const handleInputChange = useCallback((index: number, field: string, value: string | string[]) => {
     updateAudit(index, { [field]: value });
@@ -158,7 +270,7 @@ const handleOpenAuditDetails = useCallback((index: number, auditHeader: string) 
     
     try {
       await commitProgram(currentProgram.id);
-      router.push("/audit/audit-programs");
+      router.push("/dashboard");
     } catch (err: any) {
       console.error("Failed to commit program:", err);
     }
@@ -179,6 +291,32 @@ const handleOpenAuditDetails = useCallback((index: number, auditHeader: string) 
       updateAudit(index, { teamMemberIds: idArray || [] });
     });
   }, [updateAudit]);
+
+  const handleApprove = useCallback(() => {
+    setAdminAction('approve');
+    setOpenDialog(true);
+  }, []);
+
+  const handleReject = useCallback(() => {
+    setAdminAction('reject');
+    setOpenDialog(true);
+  }, []);
+
+  const confirmAdminAction = useCallback(async () => {
+    setOpenDialog(false);
+    if (!adminAction) return;
+    
+    try {
+      if (adminAction === 'approve') {
+        await approveProgram(currentProgram.id);
+      } else {
+        await rejectProgram(currentProgram.id);
+      }
+      router.push("/dashboard");
+    } catch (err: any) {
+      console.error(`Failed to ${adminAction} program:`, err);
+    }
+  }, [adminAction, currentProgram.id, approveProgram, rejectProgram, router]);
 
   return (
     <Box sx={{ p: 6, minHeight: "100vh", bgcolor: "#F5F7FA" }}>
@@ -237,6 +375,7 @@ const handleOpenAuditDetails = useCallback((index: number, auditHeader: string) 
           refreshAudits={() => fetchProgram(currentProgram.id)}
           onTeamLeaderIdsChange={handleTeamLeaderIds}
           onTeamMemberIdsChange={handleTeamMemberIds}
+          readOnly={isReadOnly} // Only read-only for admin reviewing a pending program
         />
 
         <Box sx={{ 
@@ -245,11 +384,21 @@ const handleOpenAuditDetails = useCallback((index: number, auditHeader: string) 
           mt: 3, 
           pb: 2 
         }}>
-          <CommitButton
-            status={currentProgram.status}
-            canCommit={canCommit}
-            onClick={handleCommit}
-          />
+          {isAdmin ? (
+            currentProgram.status === 'PENDING_APPROVAL' && (
+              <AdminActionButtons
+                onApprove={handleApprove}
+                onReject={handleReject}
+                disabled={!currentProgram.audits.length}
+              />
+            )
+          ) : (
+            <CommitButton
+              status={currentProgram.status}
+              canCommit={canCommit}
+              onClick={handleCommit}
+            />
+          )}
         </Box>
       </Box>
 
@@ -274,9 +423,16 @@ const handleOpenAuditDetails = useCallback((index: number, auditHeader: string) 
       </Snackbar>
 
       <CommitDialog
-        open={openDialog}
+        open={openDialog && !isAdmin}
         onClose={() => setOpenDialog(false)}
         onConfirm={confirmCommit}
+      />
+
+      <AdminActionDialog
+        open={openDialog && isAdmin}
+        onClose={() => setOpenDialog(false)}
+        onConfirm={confirmAdminAction}
+        action={adminAction || 'approve'}
       />
     </Box>
   );

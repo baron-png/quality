@@ -1,4 +1,3 @@
-
 "use client";
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/context/auth-context";
@@ -14,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 interface Notification {
   id: string;
@@ -25,10 +25,12 @@ interface Notification {
   type?: string;
   priority?: "LOW" | "MEDIUM" | "HIGH";
   expiresAt?: string;
+  programId?: string;
 }
 
 export default function NotificationsPage() {
   const { token, user } = useAuth();
+  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "read" | "unread">("all");
@@ -222,6 +224,15 @@ export default function NotificationsPage() {
     return true;
   });
 
+  // Add handler for viewing audit program
+  const handleViewAuditProgram = (notification: Notification) => {
+    if (notification.type?.startsWith('AUDIT_PROGRAM_') && notification.programId) {
+      router.push(`/audit/audit-program/details/${notification.programId}`);
+    } else if (notification.link) {
+      window.location.href = notification.link;
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
       <div className="flex justify-between items-center mb-6">
@@ -308,13 +319,14 @@ export default function NotificationsPage() {
                       {new Date(n.createdAt).toLocaleString()}
                     </span>
                   )}
-                  {n.link && (
-                    <Link
-                      href={n.link}
+                  {(n.link || (n.type?.startsWith('AUDIT_PROGRAM_') && n.programId)) && (
+                    <Button
+                      variant="link"
+                      onClick={() => handleViewAuditProgram(n)}
                       className="text-primary underline text-sm mt-2 inline-block"
                     >
-                      View Details
-                    </Link>
+                      {n.type?.startsWith('AUDIT_PROGRAM_') ? 'Review Program' : 'View Details'}
+                    </Button>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
