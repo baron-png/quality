@@ -61,7 +61,6 @@ export async function getAuditProgramById(id: string, token: string) {
   }
   return response.json();
 }
-
 export async function saveAuditDates(
   auditId: string,
   dates: {
@@ -70,19 +69,31 @@ export async function saveAuditDates(
     teamMemberAppointments?: { appointmentDate: string }[];
     followUpDates?: { startDate: string | null; endDate: string | null };
     managementReviewDates?: { startDate: string | null; endDate: string | null };
-  }
+  },
+  token: string
 ) {
+  console.log("saveAuditDates called", { 
+    auditId, 
+    dates, 
+    token: token ? "present" : "missing" 
+  }); // Debug log
   const response = await fetch(`http://localhost:5004/api/audits/${auditId}/dates`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
     credentials: 'include',
     body: JSON.stringify(dates),
   });
   if (!response.ok) {
     const errorData = await response.json();
-    throw new Error(errorData.error || "Failed to save audit dates");
+    console.error("saveAuditDates error:", { status: response.status, errorData }); // Debug log
+    throw new Error(errorData.error || `Failed to save audit dates (status: ${response.status})`);
   }
-  return response.json();
+  const result = await response.json();
+  console.log("saveAuditDates success:", result); // Debug log
+  return result;
 }
 
 export async function saveTeamAppointments(
@@ -267,24 +278,37 @@ export async function createAuditProgramWithAudits(newProgram: any) {
   }
   return true;
 }
-
-export async function getAuditByProgramAndNumber(programId: string, auditNumber: string) {
-  const response = await fetch(`http://localhost:5004/api/audit-programs/${programId}`, {
+export async function getAuditByProgramAndNumber(programId: string, auditNumber: string, token: string) {
+  console.log("getAuditByProgramAndNumber called", { programId, auditNumber, token: token ? "present" : "missing" }); // Debug log
+  const response = await fetch(`http://localhost:5004/api/audit-programs/${programId}/audits/${encodeURIComponent(auditNumber)}`, {
+    method: "GET", // Explicitly set to GET
     credentials: 'include',
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
   });
   if (!response.ok) {
+    if (response.status === 404) {
+      console.log("No audit found for", { programId, auditNumber }); // Debug log
+      return null;
+    }
     const errorData = await response.json();
+    console.error("Fetch audit error:", errorData); // Debug log
     throw new Error(errorData.error || "Failed to fetch audit");
   }
-  const program = await response.json();
-  const audit = program.audits.find((a: any) => a.auditNumber === auditNumber);
-  return audit || null;
+  const audit = await response.json();
+  console.log("Fetched audit:", audit); // Debug log
+  return audit;
 }
 
-export async function updateAudit(auditId: string, data: any) {
+export async function updateAudit(auditId: string, data: any, token: string) {
   const response = await fetch(`http://localhost:5004/api/audits/${auditId}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: { 
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}` // <-- Send token here
+    },
     credentials: 'include',
     body: JSON.stringify(data),
   });

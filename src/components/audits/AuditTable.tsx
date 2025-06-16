@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, memo, useCallback } from "react";
@@ -419,7 +420,7 @@ const AuditTable: React.FC<AuditTableProps> = ({
         } : undefined,
       };
 
-      await saveAuditDates(audit.id, payload);
+      await saveAuditDates(audit.id, payload, token); // Pass token
       setSuccess("Dates saved successfully");
       await refreshAudits();
     } catch (err: any) {

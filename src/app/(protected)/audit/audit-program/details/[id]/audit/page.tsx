@@ -1,72 +1,92 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { Box, Typography, Button, Snackbar, Alert, CircularProgress, Chip } from "@mui/material";
 import MDEditor, { commands } from "@uiw/react-md-editor";
-import { createAuditForProgram, getAuditByProgramAndNumber, updateAudit } from "@/api/auditService";
+import { createAuditForProgram, updateAudit, getAuditProgramById } from "@/api/auditService";
 
 const AuditDetailsPage = () => {
+  const params = useParams();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const { token, loading: authLoading } = useAuth();
+  const { id: programId } = params;
+  const auditHeader = searchParams.get("auditHeader") || "Unknown Audit";
+  const auditId = searchParams.get("auditId");
+
   const [auditDetails, setAuditDetails] = useState({
-    id: null as string | null,
-    auditNumber: "",
+    id: auditId || null,
+    auditNumber: auditHeader ? decodeURIComponent(auditHeader) : "",
     objectives: "",
     scope: "",
     criteria: "",
     methods: "",
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!!auditId); // Load if auditId exists
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const params = useParams();
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const { token } = useAuth();
-  const { id: programId } = params;
-  const auditHeader = searchParams.get("auditHeader") || "Unknown Audit";
+  console.log("AuditDetailsPage rendered", {
+    programId,
+    auditHeader,
+    auditId,
+    token: token ? "present" : "missing",
+    authLoading,
+    params,
+  }); // Debug log
 
-   useEffect(() => {
-    if (!programId || !auditHeader) {
-      setLoading(false);
-      return;
-    }
-  
+  useEffect(() => {
+    if (authLoading || !token || !auditId || !programId) return;
+
     const fetchAudit = async () => {
+      console.log("Fetching audit program", { programId, auditId }); // Debug log
       try {
-        const existingAudit = await getAuditByProgramAndNumber(programId as string, auditHeader);
-        if (existingAudit) {
+        const program = await getAuditProgramById(programId as string, token);
+        console.log("Fetched program:", program); // Debug log
+        const audit = program.audits?.find((a: any) => a.id === auditId);
+        if (audit) {
+          console.log("Found audit:", audit); // Debug log
           setAuditDetails({
-            id: existingAudit.id,
-            auditNumber: existingAudit.auditNumber,
-            objectives: existingAudit.specificAuditObjective?.join("\n") || "",
-            scope: existingAudit.scope?.join("\n") || "",
-            criteria: existingAudit.criteria?.join("\n") || "",
-            methods: existingAudit.methods?.join("\n") || "",
+            id: audit.id,
+            auditNumber: audit.auditNumber || decodeURIComponent(auditHeader),
+            objectives: audit.specificAuditObjective?.join("\n") || "",
+            scope: audit.scope?.join("\n") || "",
+            criteria: audit.criteria?.join("\n") || "",
+            methods: audit.methods?.join("\n") || "",
           });
         } else {
-          setAuditDetails((prev) => ({ ...prev, auditNumber: auditHeader }));
+          console.log("Audit not found in program", { auditId, programId }); // Debug log
+          setError("Audit not found in the program");
         }
       } catch (err: any) {
+        console.error("Fetch audit error:", err); // Debug log
         setError(err.message || "Failed to fetch audit details");
       } finally {
         setLoading(false);
       }
     };
-  
+
     fetchAudit();
-  }, [programId, auditHeader]);
+  }, [auditId, programId, token, authLoading, auditHeader]);
 
   const handleInputChange = (field: string, value: string | undefined) => {
     setAuditDetails((prev) => ({ ...prev, [field]: value || "" }));
   };
 
   const handleSave = async () => {
-    if (!auditDetails.auditNumber || !auditDetails.scope.trim() || !auditDetails.objectives.trim() ||
+    console.log("handleSave triggered", { auditDetails, programId, token: token ? "present" : "missing" }); // Debug log
+    if (!programId) {
+      setError("Program ID is missing");
+      console.log("Validation failed: programId is missing"); // Debug log
+      return;
+    }
+    if (!auditDetails.scope.trim() || !auditDetails.objectives.trim() ||
         !auditDetails.criteria.trim() || !auditDetails.methods.trim()) {
       setError("Please fill in all required fields: scope, objectives, criteria, and methods");
+      console.log("Validation failed:", auditDetails); // Debug log
       return;
     }
 
@@ -80,12 +100,14 @@ const AuditDetailsPage = () => {
         criteria: auditDetails.criteria.split("\n").filter(c => c.trim()),
       };
 
+      console.log("Saving audit with payload:", payload); // Debug log
       if (auditDetails.id) {
-        await updateAudit(auditDetails.id, payload);
+        console.log("Updating audit with ID:", auditDetails.id); // Debug log
+        await updateAudit(auditDetails.id, payload, token);
         setSuccess("Audit updated successfully");
       } else {
-        console.log("Token being sent to createAuditForProgram:", token); // <-- Add this line
-               await createAuditForProgram(programId as string, payload, token);
+        console.log("Creating audit for programId:", programId); // Debug log
+        await createAuditForProgram(programId as string, payload, token);
         setSuccess("Audit created successfully");
       }
 
@@ -93,17 +115,20 @@ const AuditDetailsPage = () => {
         router.push(`/audit/audit-program/details/${programId}`);
       }, 1500);
     } catch (err: any) {
+      console.error("Save error:", err); // Debug log
       setError(err.message || "Failed to save audit details");
     } finally {
       setSaving(false);
+      console.log("Saving state reset to false"); // Debug log
     }
   };
 
   const handleCancel = () => {
+    console.log("Cancel button clicked"); // Debug log
     router.push(`/audit/audit-program/details/${programId}`);
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <Box sx={{ 
         display: 'flex', 
@@ -329,7 +354,10 @@ const AuditDetailsPage = () => {
           </Button>
           <Button
             variant="contained"
-            onClick={handleSave}
+            onClick={() => {
+              console.log("Save button clicked, saving:", saving, "programId:", programId); // Debug log
+              handleSave();
+            }}
             disabled={saving}
             sx={{
               background: "linear-gradient(90deg, #1976D2 0%, #42A5F5 100%)",

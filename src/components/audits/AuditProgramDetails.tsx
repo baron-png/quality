@@ -128,11 +128,13 @@ const AuditProgramDetails: React.FC<AuditProgramDetailsProps> = ({ program }) =>
     updateAudit(index, { [field]: value });
   }, [updateAudit]);
 
-  const handleOpenAuditDetails = useCallback((index: number, auditHeader: string) => {
-    router.push(
-      `/audit/audit-program/details/${program.id}/audit/${index}?auditHeader=${encodeURIComponent(auditHeader)}`
-    );
-  }, [program.id, router]);
+const handleOpenAuditDetails = useCallback((index: number, auditHeader: string) => {
+  const audit = program.audits[index];
+  console.log("Opening audit details", { auditId: audit.id, auditNumber: auditHeader, programId: program.id }); // Debug log
+  router.push(
+    `/audit/audit-program/details/${program.id}/audit?auditId=${audit.id}&auditHeader=${encodeURIComponent(auditHeader)}`
+  );
+}, [program.id, program.audits, router]);
 
   const handleCommit = useCallback(() => {
     setOpenDialog(true);
