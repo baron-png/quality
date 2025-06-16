@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, memo } from "react";
+import { useCallback, useState, memo, useEffect } from "react";
 import { Box, Typography, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Button } from "@mui/material";
 import { useRouter } from "next/navigation";
 import AuditTable from "./AuditTable";
@@ -108,10 +108,11 @@ const auditHeaders = [
   "RE-CERTIFICATION AUDIT",
 ];
 
-const AuditProgramDetails: React.FC<AuditProgramDetailsProps> = ({ program }) => {
+const AuditProgramDetails: React.FC<AuditProgramDetailsProps> = ({ program: initialProgram }) => {
   const router = useRouter();
   const { token } = useAuth();
   const { 
+    program,
     error, 
     success, 
     clearMessages, 
@@ -124,17 +125,28 @@ const AuditProgramDetails: React.FC<AuditProgramDetailsProps> = ({ program }) =>
   
   const [openDialog, setOpenDialog] = useState<boolean>(false);
 
+  // Only fetch on mount if we have an initial program and no program in context
+  useEffect(() => {
+    if (initialProgram?.id && !program) {
+      fetchProgram(initialProgram.id);
+    }
+  }, []); // Empty dependency array means this only runs on mount
+
+  // Use program from context, fallback to initialProgram if context program is null
+  const currentProgram = program || initialProgram;
+  if (!currentProgram) return null;
+
   const handleInputChange = useCallback((index: number, field: string, value: string | string[]) => {
     updateAudit(index, { [field]: value });
   }, [updateAudit]);
 
 const handleOpenAuditDetails = useCallback((index: number, auditHeader: string) => {
-  const audit = program.audits[index];
-  console.log("Opening audit details", { auditId: audit.id, auditNumber: auditHeader, programId: program.id }); // Debug log
+  const audit = currentProgram.audits[index];
+  console.log("Opening audit details", { auditId: audit.id, auditNumber: auditHeader, programId: currentProgram.id }); // Debug log
   router.push(
-    `/audit/audit-program/details/${program.id}/audit?auditId=${audit.id}&auditHeader=${encodeURIComponent(auditHeader)}`
+    `/audit/audit-program/details/${currentProgram.id}/audit?auditId=${audit.id}&auditHeader=${encodeURIComponent(auditHeader)}`
   );
-}, [program.id, program.audits, router]);
+}, [currentProgram.id, currentProgram.audits, router]);
 
   const handleCommit = useCallback(() => {
     setOpenDialog(true);
@@ -145,12 +157,12 @@ const handleOpenAuditDetails = useCallback((index: number, auditHeader: string) 
     if (!canCommit) return;
     
     try {
-      await commitProgram(program.id);
+      await commitProgram(currentProgram.id);
       router.push("/audit/audit-programs");
     } catch (err: any) {
       console.error("Failed to commit program:", err);
     }
-  }, [canCommit, program.id, commitProgram, router]);
+  }, [canCommit, currentProgram.id, commitProgram, router]);
 
   const handleSaveDates = useCallback(async (auditId: string, dates: Partial<Audit>) => {
     await handleSaveAuditDates(auditId, dates);
@@ -178,7 +190,7 @@ const handleOpenAuditDetails = useCallback((index: number, auditHeader: string) 
           mb: 2 
         }}
       >
-        AUDIT PROGRAMME: {program.name}
+        AUDIT PROGRAMME: {currentProgram.name}
       </Typography>
 
       <Typography 
@@ -191,7 +203,7 @@ const handleOpenAuditDetails = useCallback((index: number, auditHeader: string) 
         OBJECTIVE(S)
       </Typography>
 
-      {program.auditProgramObjective ? (
+      {currentProgram.auditProgramObjective ? (
         <Box 
           sx={{ 
             color: "#5F6368", 
@@ -199,7 +211,7 @@ const handleOpenAuditDetails = useCallback((index: number, auditHeader: string) 
             pl: 2 
           }} 
           dangerouslySetInnerHTML={{ 
-            __html: program.auditProgramObjective 
+            __html: currentProgram.auditProgramObjective 
           }} 
         />
       ) : (
@@ -216,13 +228,13 @@ const handleOpenAuditDetails = useCallback((index: number, auditHeader: string) 
         p: 3 
       }}>
         <AuditTable
-          audits={program.audits}
-          programStatus={program.status}
+          audits={currentProgram.audits}
+          programStatus={currentProgram.status}
           onInputChange={handleInputChange}
           onOpenAuditDetails={handleOpenAuditDetails}
           setError={clearMessages}
           setSuccess={clearMessages}
-          refreshAudits={() => fetchProgram(program.id)}
+          refreshAudits={() => fetchProgram(currentProgram.id)}
           onTeamLeaderIdsChange={handleTeamLeaderIds}
           onTeamMemberIdsChange={handleTeamMemberIds}
         />
@@ -234,7 +246,7 @@ const handleOpenAuditDetails = useCallback((index: number, auditHeader: string) 
           pb: 2 
         }}>
           <CommitButton
-            status={program.status}
+            status={currentProgram.status}
             canCommit={canCommit}
             onClick={handleCommit}
           />

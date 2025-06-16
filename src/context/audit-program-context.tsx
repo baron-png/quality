@@ -59,7 +59,12 @@ const fetchProgram = useCallback(async (programId: string) => {
   dispatch({ type: 'SET_LOADING', payload: true });
   try {
     const rawProgram = await getAuditProgramById(programId, token);
-    dispatch({ type: 'SET_PROGRAM', payload: rawProgram });
+    // Transform the audits before setting in state
+    const transformedProgram = {
+      ...rawProgram,
+      audits: rawProgram.audits.map(transformAuditFromBackend)
+    };
+    dispatch({ type: 'SET_PROGRAM', payload: transformedProgram });
   } catch (error: any) {
     dispatch({ type: 'SET_ERROR', payload: error.message || 'Failed to fetch program' });
   } finally {
@@ -88,7 +93,7 @@ const fetchProgram = useCallback(async (programId: string) => {
       const payload = createSaveDatesPayload(audit);
 
       // Save to backend
-      await saveAuditDates(auditId, payload);
+      await saveAuditDates(auditId, payload, token);
       
       // Refresh the program to get the latest data
       await fetchProgram(state.program.id);

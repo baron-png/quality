@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, memo, useCallback } from "react";
@@ -372,6 +371,11 @@ const AuditTable: React.FC<AuditTableProps> = ({
   const [loadingUsers, setLoadingUsers] = useState<boolean>(true);
   const [savingIndex, setSavingIndex] = useState<number | null>(null);
 
+  // Add effect to log audits changes for debugging
+  useEffect(() => {
+    console.log('AuditTable received new audits:', audits);
+  }, [audits]);
+
   // Fetch users from API
   useEffect(() => {
     const fetchUsers = async () => {
@@ -590,4 +594,4 @@ const AuditTable: React.FC<AuditTableProps> = ({
   );
 };
 
-export default memo(AuditTable);
+export default AuditTable;
