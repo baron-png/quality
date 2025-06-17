@@ -1,5 +1,6 @@
 "use client";
-
+import { setCookie } from "cookies-next";
+import { deleteCookie } from "cookies-next";
 import React, { createContext, useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
@@ -106,47 +107,51 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const login = async (email, password) => {
-    setLoading(true);
-    try {
-      const response = await api.post("/login", { email, password }, { withCredentials: true });
-      if (response.data.requiresVerification) {
-        setOtpEmail(email);
-        setShowOtpModal(true);
-        toast.info("Please verify your email with the OTP sent.");
-        return;
-      }
-      const { accessToken, user: userData } = response.data;
-      const primaryRole = userData.roles?.[0]?.name || "default";
-      localStorage.setItem("accessToken", accessToken);
-      setUser({ ...userData, accessToken, primaryRole });
-      router.push(getRedirectRoute(primaryRole));
-    } catch (error) {
-      console.error("Login failed:", error);
-      toast.error(error.response?.data?.error?.message || "Login failed. Please check your credentials.");
-    } finally {
-      setLoading(false);
+const login = async (email, password) => {
+  setLoading(true);
+  try {
+    const response = await api.post("/login", { email, password }, { withCredentials: true });
+    if (response.data.requiresVerification) {
+      setOtpEmail(email);
+      setShowOtpModal(true);
+      toast.info("Please verify your email with the OTP sent.");
+      return;
     }
-  };
+    const { accessToken, user: userData } = response.data;
+    const primaryRole = userData.roles?.[0]?.name || "default";
+    localStorage.setItem("accessToken", accessToken);
+    setCookie("accessToken", accessToken, { httpOnly: false, secure: true, sameSite: "strict" });
+    setUser({ ...userData, accessToken, primaryRole });
+    router.push(getRedirectRoute(primaryRole));
+  } catch (error) {
+    console.error("Login failed:", error);
+    toast.error(error.response?.data?.error?.message || "Login failed. Please check your credentials.");
+  } finally {
+    setLoading(false);
+  }
+};
 
-  const logout = async () => {
-    setLoading(true);
-    try {
-      await api.post("/logout", {}, { withCredentials: true });
-      setUser(null);
-      localStorage.removeItem("accessToken");
-      sessionStorage.removeItem("accessToken");
-      router.push("/sign-in");
-    } catch (error) {
-      console.error("Logout failed:", error);
-      setUser(null);
-      localStorage.removeItem("accessToken");
-      sessionStorage.removeItem("accessToken");
-      router.push("/sign-in");
-    } finally {
-      setLoading(false);
-    }
-  };
+
+const logout = async () => {
+  setLoading(true);
+  try {
+    await api.post("/logout", {}, { withCredentials: true });
+    setUser(null);
+    localStorage.removeItem("accessToken");
+    sessionStorage.removeItem("accessToken");
+    deleteCookie("accessToken");
+    router.push("/sign-in");
+  } catch (error) {
+    console.error("Logout failed:", error);
+    setUser(null);
+    localStorage.removeItem("accessToken");
+    sessionStorage.removeItem("accessToken");
+    deleteCookie("accessToken");
+    router.push("/sign-in");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleOtpVerified = () => {
     setShowOtpModal(false);
